@@ -266,6 +266,12 @@ siberrag serve --port 8000
 
 Dokumentasi API otomatis: http://localhost:8000/docs
 
+> Untuk akses dari device lain di jaringan yang sama (HP/tablet), gunakan `--host 0.0.0.0`:
+> ```bash
+> siberrag serve --host 0.0.0.0 --port 8000
+> ```
+> Lalu akses via `http://<IP-komputer>:8000` dari device lain.
+
 ### Endpoints
 
 #### Health check
@@ -322,6 +328,8 @@ Chat interface berbasis Gradio untuk tanya-jawab interaktif.
 
 ```bash
 pip install -e ".[ui]"
+# reinstall agar siberrag_ui terdeteksi (bila baru install ulang)
+pip install -e . --no-deps
 python -m siberrag_ui.app
 ```
 
@@ -413,6 +421,21 @@ Error: collection dim 1024 tapi model 1536
 ```bash
 rm -rf vectorstore
 siberrag index dokumen.pdf
+```
+
+### "No module named 'siberrag_api'" saat `siberrag serve`
+
+```
+ModuleNotFoundError: No module named 'siberrag_api'
+```
+
+**Penyebab**: Package `siberrag_api`/`siberrag_ui` belum terdaftar di editable install (mis. folder dibuat setelah `pip install -e .` dijalankan, atau clone baru tanpa reinstall).
+
+**Solusi**: Reinstall package agar discovery scan ulang:
+```bash
+pip install -e ".[rag,rag-openai,api]" --no-deps
+# atau minimal:
+pip install -e . --no-deps
 ```
 
 ### Model local lambat saat startup
