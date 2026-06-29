@@ -112,15 +112,72 @@ python -m siberrag_ui.app
 
 ## 🏗️ Arsitektur
 
-```
-v1 (chunking):                         v2 (RAG):
-Document → Parse → Clean → Chunk  →   IndexPipeline  →  ChromaDB
-  ↑ pattern detection BAB/Pasal           (embed + store)
-  ↑ heading boundary keras
-                                        QueryPipeline →  Retrieve → LLM → Answer
-                                          (embed query)
+SiberRAG punya 2 alur utama yang dibangun di atas engine chunking yang sama:
 
-                                        REST API + Web UI
+### Alur 1 — Indexing (dokumen → vector DB)
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    INDEX PIPELINE                            │
+│                                                              │
+│  Dokumen    ┌──────────── V1 CHUNKING ────────────┐         │
+│  (PDF/DOCX/ │                                       │         │
+│   MD/TXT/   │  Parse → Clean → Hierarchy → Chunk   │         │
+│   HTML/XLSX)│       │                              │         │
+│             │       ├─ hapus noise (header/footer) │         │
+│             │       ├─ deteksi Bab/Pasal/Bagian    │         │
+│             │       └─ pisahkan per struktur       │         │
+│             └───────────────┬───────────────────────┘         │
+│                             ▼                                │
+│                     Chunk + Metadata                         │
+│                             │                                │
+│                             ▼                                │
+│                    ┌─── EMBEDDING ───┐                       │
+│                    │  BGE-m3 (local) │   atau   │  OpenAI-compat API │
+│                    └────────┬────────┘                       │
+│                             ▼                                │
+│                    ┌─── VECTOR DB ───┐                       │
+│                    │    ChromaDB     │  (simpan ke disk)      │
+│                    └─────────────────┘                       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Alur 2 — Query (pertanyaan → jawaban)
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    QUERY PIPELINE                            │
+│                                                              │
+│  Pertanyaan ──→ Embedding ──→ ┌─── VECTOR DB ───┐           │
+│  (bahasa natural)             │  search top-k   │           │
+│                               │  chunk relevan  │           │
+│                               └────────┬────────┘           │
+│                                        ▼                     │
+│                               ┌─── RAG PROMPT ──┐           │
+│                               │ system + context│           │
+│                               │ + pertanyaan    │           │
+│                               └────────┬────────┘           │
+│                                        ▼                     │
+│                               ┌────── LLM ──────┐           │
+│                               │ GPT-4o / Llama  │           │
+│                               └────────┬────────┘           │
+│                                        ▼                     │
+│                               Jawaban + Sumber              │
+│                               (sitasi pasal/hal)            │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Akses pengguna
+```
+        ┌──────────────┐     ┌──────────────┐
+        │  CLI (Typer) │     │  REST API    │
+        │  siberrag    │     │  (FastAPI)   │
+        └──────┬───────┘     └──────┬───────┘
+               │                     │
+               └──────────┬──────────┘
+                          ▼
+                 ┌──────────────┐
+                 │   Web UI     │
+                 │  (Gradio)    │
+                 └──────────────┘
 ```
 
 Engine chunking v1 **tidak diubah** — IndexPipeline memanggilnya untuk dapat chunk, lalu embed + store.
@@ -163,4 +220,12 @@ MIT
 
 ---
 
-**SiberRAG** — RAG yang mengerti Bahasa Indonesia & struktur dokumen regulasi. Dibangun dari pengalaman nyata, bukan teori.
+## 👨‍💻 Developer
+
+**DataSiberLab**
+
+- 📧 Email: [candrapwr@datasiber.com](mailto:candrapwr@datasiber.com)
+
+---
+
+**SiberRAG** — RAG yang mengerti Bahasa Indonesia & struktur dokumen. Dibangun dari pengalaman nyata, bukan teori.
