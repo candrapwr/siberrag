@@ -63,11 +63,11 @@ export:
 #   custom -> endpoint OpenAI-compatible APA SAJA (Jina/Cohere/Together/Ollama/LM Studio/dll)
 embedding:
   provider: "custom"           # "local" | "openai" | "custom"
-  model: "BAAI/bge-m3"        # utk openai: text-embedding-3-small; sesuaikan dgn provider
-  dim: 1024                   # sesuaikan: BGE-m3=1024, OpenAI-3-small=1536, dll
+  model: "BAAI/bge-m3"        # model embedding DeepInfra
+  dim: 1024                   # BGE-m3=1024
   batch_size: 32
-  api_key: ""                 # utk openai/custom: set env OPENAI_API_KEY atau isi di sini (boleh kosong utk endpoint lokal)
-  api_base: ""                # utk custom: isi URL endpoint, mis. https://api.openai.com/v1 atau http://localhost:11434/v1
+  api_key: ""                 # ambil dari env OPENAI_API_KEY (JANGAN taruh key di sini)
+  api_base: "https://api.deepinfra.com/v1"  # endpoint DeepInfra
 
 # ---- Vector Database ----
 vector_db:
@@ -78,10 +78,10 @@ vector_db:
 
 # ---- LLM (OpenAI-compatible API) ----
 llm:
-  provider: "openai"
-  model: "gpt-4o-mini"
-  api_key: ""                 # kosongkan -> ambil dari env OPENAI_API_KEY
-  api_base: ""                # mis. https://api.openai.com/v1 (atau LM Studio/vLLM lokal)
+  provider: "openai"          # "openai" (pakai OpenAI-compatible endpoint apa saja)
+  model: "meta-llama/Meta-Llama-3-8B-Instruct"   # sesuaikan dgn model di provider DeepInfra
+  api_key: ""                 # ambil dari env OPENAI_API_KEY (JANGAN taruh key di sini)
+  api_base: "https://api.deepinfra.com/v1"       # endpoint DeepInfra
   temperature: 0.3
   max_tokens: 1024
 

@@ -10,6 +10,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional
 
+# Muat .env SEBELUM config/provider diinisialisasi.
+from siberrag_core.utils.env import load_env
+load_env()
+
 import typer
 from rich.console import Console
 
