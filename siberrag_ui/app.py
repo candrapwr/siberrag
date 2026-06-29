@@ -14,6 +14,10 @@ from __future__ import annotations
 import os
 from typing import Optional
 
+# Muat .env SEBELUM config/provider diinisialisasi (sama seperti CLI & API server).
+from siberrag_core.utils.env import load_env
+load_env()
+
 from siberrag_core.config import load_config
 
 _config_path = os.environ.get("SIBERRAG_CONFIG", "").strip()
