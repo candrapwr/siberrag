@@ -71,7 +71,7 @@ def build_ui():
     """Bangun Gradio interface."""
     import gradio as gr
 
-    with gr.Blocks(title="SiberRAG", theme=gr.themes.Soft()) as demo:
+    with gr.Blocks(title="SiberRAG") as demo:
         gr.Markdown(
             "# 🚀 SiberRAG\n"
             "Sistem tanya-jawab dokumen berbasis RAG. "
@@ -105,21 +105,18 @@ def build_ui():
 def main(host: str = "127.0.0.1", port: int = 7860):
     """Jalankan Gradio UI server."""
     demo = build_ui()
-    demo.launch(server_name=host, server_port=port)
+    demo.launch(server_name=host, server_port=port, theme="Soft")
 
 
 if __name__ == "__main__":  # pragma: no cover
-    import typer
-    cli = typer.Typer()
+    import argparse
 
-    @cli.command()
-    def run(
-        host: str = "127.0.0.1",
-        port: int = 7860,
-        config: Optional[str] = None,
-    ):
-        if config:
-            os.environ["SIBERRAG_CONFIG"] = config
-        main(host, port)
+    parser = argparse.ArgumentParser(description="SiberRAG Web UI (Gradio)")
+    parser.add_argument("--host", default="127.0.0.1", help="Host bind (default: 127.0.0.1)")
+    parser.add_argument("--port", type=int, default=7860, help="Port (default: 7860)")
+    parser.add_argument("--config", default=None, help="Path file config.yaml custom")
+    args = parser.parse_args()
 
-    cli()
+    if args.config:
+        os.environ["SIBERRAG_CONFIG"] = args.config
+    main(host=args.host, port=args.port)
