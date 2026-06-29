@@ -29,6 +29,7 @@ chunking:
   overlap_tokens: 90          # 80-100 token
   encoding: "cl100k_base"     # tiktoken encoding
   split_on_paragraph: true    # hanya split di batas paragraf bila perlu
+  respect_heading_boundary: true  # heading SELALU mulai chunk baru (cegah campur lintas-bab)
   prepend_context: true       # tambahkan header [Chapter > Section] ke teks chunk (bantu retrieval)
 
 # ---- Validation ----

@@ -243,13 +243,19 @@ class Chunker:
                 i += 1
                 continue
 
-            # heading sebagai pemisah: bila current sudah cukup (>= minimum) dan
-            # unit berikutnya adalah heading, tutup current agar section baru
-            # punya chunk sendiri (konteks retrieval lebih baik).
-            if unit.kind == "heading" and current and current_tokens >= minimum:
-                groups.append(current)
-                current = []
-                current_tokens = 0
+            # heading sebagai pemisah:
+            # - respect_heading_boundary=True (default): heading SELALU memulai
+            #   chunk baru (hard boundary). Mencegah konten lintas-bab tercampur.
+            # - False: heading hanya pemisah bila current sudah >= minimum (soft).
+            if unit.kind == "heading" and current:
+                should_split = (
+                    current_tokens >= minimum
+                    or self.cfg.respect_heading_boundary
+                )
+                if should_split:
+                    groups.append(current)
+                    current = []
+                    current_tokens = 0
 
             # bila menambahkan unit melebihi max, tutup current + overlap
             if current and current_tokens + unit_tokens > maximum:
@@ -286,9 +292,17 @@ class Chunker:
 
     def _merge_small(self, groups: list[list[_Unit]], minimum: int,
                      maximum: int) -> list[list[_Unit]]:
-        """Gabungkan group bertetangga bila ada yang di bawah minimum."""
+        """Gabungkan group bertetangga bila ada yang di bawah minimum.
+
+        PENTING: bila ``respect_heading_boundary`` aktif, JANGAN gabung group
+        yang dipisahkan oleh heading. Setiap group yang dimulai dengan heading
+        harus tetap terpisah agar konten lintas-bab/pasal tidak bercampur
+        (hard boundary). Merge hanya terjadi antar group yang berisi paragraf
+        biasa (tanpa heading di awal).
+        """
         if len(groups) <= 1:
             return groups
+        respect_boundary = self.cfg.respect_heading_boundary
         merged: list[list[_Unit]] = []
         for group in groups:
             if not merged:
@@ -296,8 +310,16 @@ class Chunker:
                 continue
             prev_tokens = sum(self.counter(u.text) for u in merged[-1])
             cur_tokens = sum(self.counter(u.text) for u in group)
-            # gabung bila group sebelumnya KECIL (< minimum) DAN hasil gabung <= maximum
-            if prev_tokens < minimum and prev_tokens + cur_tokens <= maximum:
+            # cek: apakah group ini dimulai dengan heading? (batas bab/pasal)
+            starts_with_heading = bool(group) and group[0].kind == "heading"
+            # gabung bila group sebelumnya KECIL DAN hasil gabung <= maximum
+            # DAN (bukan hard boundary ATAU group ini bukan dimulai heading)
+            can_merge = (
+                prev_tokens < minimum
+                and prev_tokens + cur_tokens <= maximum
+                and not (respect_boundary and starts_with_heading)
+            )
+            if can_merge:
                 merged[-1].extend(group)
             else:
                 merged.append(group)
