@@ -118,44 +118,35 @@ SiberRAG punya 2 alur utama yang dibangun di atas engine chunking yang sama.
 
 ```mermaid
 graph TD
-    A["📄 Dokumen<br/>(PDF/DOCX/MD/TXT/HTML/XLSX)"] --> B[Parse - ubah jadi struktur]
-    B --> C["🧹 Cleaning<br/>(hapus header/footer/noise)"]
-    C --> D["🌳 Hierarchy<br/>(deteksi Bab/Pasal/Bagian)"]
-    D --> E["✂️ Chunking<br/>(pisahkan per struktur, token-aware)"]
+    A["Dokumen PDF/DOCX/MD/TXT/HTML/XLSX"] --> B[Parse - ubah jadi struktur]
+    B --> C["Cleaning - hapus header/footer/noise"]
+    C --> D["Hierarchy - deteksi Bab/Pasal/Bagian"]
+    D --> E["Chunking - pisahkan per struktur, token-aware"]
     E --> F["Chunk + Metadata"]
-    F --> G["🧠 Embedding<br/>(BGE-m3 / OpenAI API)"]
-    G --> H["💾 ChromaDB<br/>(simpan ke disk)"]
-
-    style A fill:#fef3c7,stroke:#f59e0b
-    style H fill:#dbeafe,stroke:#3b82f6
+    F --> G["Embedding - BGE-m3 / OpenAI API"]
+    G --> H["ChromaDB - simpan ke disk"]
 ```
 
 ### Alur 2 — Query (pertanyaan → jawaban)
 
 ```mermaid
 graph TD
-    A["❓ Pertanyaan<br/>(bahasa natural)"] --> B["🧠 Embedding<br/>(BGE-m3 / OpenAI API)"]
-    B --> C["🔍 Cari di ChromaDB<br/>(top-k chunk relevan)"]
+    A["Pertanyaan - bahasa natural"] --> B["Embedding - BGE-m3 / OpenAI API"]
+    B --> C["Cari di ChromaDB - top-k chunk relevan"]
     C --> D{Ada konteks relevan?}
-    D -- Tidak --> E["⚠️ Jawab: tidak ditemukan"]
-    D -- Ya --> F["📝 RAG Prompt<br/>(system + context + pertanyaan)"]
-    F --> G["🤖 LLM<br/>(GPT-4o / Llama 3 / Qwen)"]
-    G --> H["✅ Jawaban + Sumber<br/>(sitasi bab/pasal/halaman)"]
-
-    style A fill:#fef3c7,stroke:#f59e0b
-    style H fill:#d1fae5,stroke:#10b981
-    style E fill:#fee2e2,stroke:#ef4444
+    D -- Tidak --> E["Jawab: tidak ditemukan"]
+    D -- Ya --> F["RAG Prompt - system + context + pertanyaan"]
+    F --> G["LLM - GPT-4o / Llama 3 / Qwen"]
+    G --> H["Jawaban + Sumber - sitasi bab/pasal/halaman"]
 ```
 
 ### Akses pengguna
 
 ```mermaid
 graph LR
-    A["⌨️ CLI<br/>(siberrag index/query)"] --> D["SiberRAG Engine"]
-    B["🌐 REST API<br/>(FastAPI)"] --> D
-    C["💬 Web UI<br/>(Gradio)"] --> D
-
-    style D fill:#dbeafe,stroke:#3b82f6
+    A["CLI - siberrag index/query"] --> D[SiberRAG Engine]
+    B["REST API - FastAPI"] --> D
+    C["Web UI - Gradio"] --> D
 ```
 
 Engine chunking v1 **tidak diubah** — IndexPipeline memanggilnya untuk dapat chunk, lalu embed + store.
