@@ -1,0 +1,52 @@
+# ============================================================
+# SiberRAG Configuration
+# ============================================================
+# Semua parameter pipeline dapat diubah dari file ini.
+# CLI akan membaca konfigurasi ini secara otomatis.
+
+# ---- Parsing ----
+parsing:
+  parser: "auto"              # "auto" | "docling" | "native"
+  enable_ocr: false           # aktifkan OCR untuk PDF scan (memerlukan docling/ocr deps)
+  ocr_language: ["en", "id"]  # bahasa OCR
+  keep_images: false          # simpan referensi image (caption tetap di-keep)
+
+# ---- Cleaning ----
+cleaning:
+  remove_repeated_headers: true
+  remove_repeated_footers: true
+  remove_page_numbers: true
+  collapse_whitespace: true
+  collapse_blank_lines: true
+  fix_broken_ocr: true
+  fix_invalid_unicode: true
+
+# ---- Chunking ----
+chunking:
+  target_tokens: 500          # target ideal 450-550
+  min_tokens: 250
+  max_tokens: 700
+  overlap_tokens: 90          # 80-100 token
+  encoding: "cl100k_base"     # tiktoken encoding
+  split_on_paragraph: true    # hanya split di batas paragraf bila perlu
+  prepend_context: true       # tambahkan header [Chapter > Section] ke teks chunk (bantu retrieval)
+
+# ---- Validation ----
+validation:
+  enabled: true
+  min_quality_score: 70       # 0-100; chunk di bawah ini diberi warning keras
+  flag_duplicate: true
+  flag_oversized: true
+  flag_undersized: true
+
+# ---- Metadata ----
+metadata:
+  detect_language: true       # gunakan langdetect bila ada, fallback heuristik
+
+# ---- Export ----
+export:
+  format: "jsonl"             # "json" | "jsonl" | "markdown"
+  output_dir: "./output"
+  pretty_json: true
+  include_metadata: true
+  overwrite: true

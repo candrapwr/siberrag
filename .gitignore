@@ -1,0 +1,86 @@
+# ============================================================
+# Python
+# ============================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+pip-wheel-metadata/
+
+# ============================================================
+# Virtual environment
+# ============================================================
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# ============================================================
+# Testing & coverage
+# ============================================================
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+coverage.xml
+*.cover
+.cache
+
+# ============================================================
+# Type checkers / linters
+# ============================================================
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.pytype/
+
+# ============================================================
+# IDE & editors
+# ============================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-workspace
+*.sublime-project
+.project
+.settings/
+
+# ============================================================
+# OS
+# ============================================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ============================================================
+# SiberRAG - output & runtime artifacts
+# ============================================================
+# Hasil ekspor pipeline (jangan di-commit)
+output/
+out/
+out_*/
+demo_output/
+*.jsonl.bak
+
+# Dokumen input yang bersifat lokal/sampel besar (sesuaikan bila ingin track)
+examples/*.pdf
+examples/*.docx
+examples/*.xlsx
+
+# Log file
+*.log
+logs/
+
+# Model/cache Docling & OCR yang terunduh otomatis
+.docling/
+*.onnx
