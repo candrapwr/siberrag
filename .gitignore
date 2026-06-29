@@ -63,6 +63,16 @@ Thumbs.db
 desktop.ini
 
 # ============================================================
+# Secrets / credentials (JANGAN di-commit)
+# ============================================================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+
+# ============================================================
 # SiberRAG - output & runtime artifacts
 # ============================================================
 # Hasil ekspor pipeline (jangan di-commit)
@@ -71,6 +81,15 @@ out/
 out_*/
 demo_output/
 *.jsonl.bak
+
+# v2 - Vector database (ChromaDB) yang di-generate
+vectorstore/
+chroma*/
+*.sqlite3
+
+# Model yang terunduh otomatis (sentence-transformers, dll)
+*.bin
+*.safetensors
 
 # Dokumen input yang bersifat lokal/sampel besar (sesuaikan bila ingin track)
 examples/*.pdf

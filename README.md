@@ -1,20 +1,29 @@
 # SiberRAG
 
-> **Document Preprocessing Engine** — menghasilkan semantic chunk berkualitas tinggi untuk Retrieval-Augmented Generation (RAG).
+> **Document Preprocessing & RAG Engine** — chunking dokumen berkualitas tinggi + tanya-jawab (RAG) untuk Retrieval-Augmented Generation.
 
-SiberRAG mengubah dokumen (PDF, DOCX, XLSX, HTML, Markdown, TXT) menjadi chunk yang terstruktur dan siap digunakan oleh sistem embedding/retrieval apa pun. Versi 1 berfokus penuh pada **preprocessing & chunking** — tidak ada embedding, vector DB, atau chatbot.
+SiberRAG mengubah dokumen (PDF, DOCX, XLSX, HTML, Markdown, TXT) menjadi chunk terstruktur, lalu mengindeksnya ke vector database sehingga bisa ditanya-jawab.
+
+- **v1 — Document Preprocessing**: chunking multi-format dengan kualitas tinggi
+- **v2 — RAG Penuh**: embedding + vector DB + retrieval + LLM generation + REST API + Web UI
 
 ## ✨ Fitur
 
-- 🔍 **Multi-format parser**: Docling sebagai primary + fallback native otomatis (PyMuPDF, python-docx, openpyxl, BeautifulSoup4)
-- 🧹 **Smart cleaning**: hapus header/footer berulang, page number, noise OCR — tanpa merusak struktur
-- 🌳 **Hierarchy builder**: struktur tree Chapter → Section → Paragraph/List/Table
-- 🧩 **Semantic block**: heading+isi, list, table, caption tetap utuh
-- ✂️ **Token-aware chunking**: target 450–550 token (min 250, max 700), overlap 80–100, tidak pernah memotong kalimat/heading/list/table
-- 📋 **Metadata lengkap**: page range, chapter, section, token/word count, language
-- ✅ **Validator**: quality score 0–100 + warning & recommendation
+### v1: Document Preprocessing
+- 🔍 **Multi-format parser**: Docling primary + fallback native otomatis (PyMuPDF, python-docx, openpyxl, BeautifulSoup4)
+- 🧹 **Smart cleaning**: 7 rule hapus noise tanpa merusak struktur
+- 🌳 **Hierarchy + Semantic block**: struktur tree, heading+isi tetap utuh
+- ✂️ **Token-aware chunking**: target 450–550 token, overlap 80–100, tidak potong struktur
+- ✅ **Validator**: quality score 0–100 + warnings
 - 📤 **Export**: JSON / JSONL / Markdown
-- 🖥️ **Single-command CLI**: `siberrag process <path>`
+
+### v2: RAG
+- 🧠 **Embedding hybrid**: local (BGE-m3, gratis/offline) atau OpenAI API
+- 💾 **ChromaDB**: vector database embedded, simpan ke disk
+- 🔎 **Retrieval**: semantic search + score filtering
+- 🤖 **LLM generation**: OpenAI-compatible API (GPT-4o, Claude, LM Studio, vLLM)
+- 🌐 **REST API**: FastAPI (index/query/stats endpoints)
+- 💬 **Web UI**: Gradio chat interface dengan source citations
 
 ## 🚀 Quick Start
 
@@ -22,36 +31,85 @@ SiberRAG mengubah dokumen (PDF, DOCX, XLSX, HTML, Markdown, TXT) menjadi chunk y
 # Instalasi (editable)
 pip install -e .
 
-# (Opsional) parser Docling
-pip install -e ".[docling]"
+# v2 RAG (embedding lokal + ChromaDB + API)
+pip install -e ".[rag,api]"
 
-# Proses dokumen
-siberrag process ./documents
-siberrag process regulasi.pdf --output ./output --format jsonl
+# (Opsional) LLM via OpenAI
+pip install -e ".[rag-openai]"
+# set OPENAI_API_KEY
+
+# (Opsional) Web UI
+pip install -e ".[ui]"
+```
+
+### v1: Chunking
+```bash
+siberrag process ./documents --format jsonl
+```
+
+### v2: Index + Query
+```bash
+# Index dokumen ke vector DB
+siberrag index regulasi.pdf
+
+# Tanya jawab
+siberrag query "Apa kewajiban penyelenggara sistem elektronik?"
+
+# Cek statistik
+siberrag stats
+
+# Retrieve-only (tanpa LLM, debug retrieval)
+siberrag query "..." --retrieve-only --top-k 5
+```
+
+### v2: REST API + Web UI
+```bash
+# Jalankan REST API server
+siberrag serve --port 8000
+# Docs otomatis: http://127.0.0.1:8000/docs
+
+# Web UI (Gradio)
+python -m siberrag_ui.app
+```
+
+API endpoints:
+```
+GET  /api/health         -> status
+GET  /api/stats          -> statistik vector DB
+POST /api/index          -> {path} index dokumen
+POST /api/query          -> {question, top_k} tanya jawab RAG
 ```
 
 ## ⚙️ Konfigurasi
 
-Semua parameter diatur via `config/config.yaml` (chunk size, overlap, OCR, parser, export, dll).
+Semua parameter diatur via `config/config.yaml` — v1 (parsing, cleaning, chunking, export) dan v2 (embedding, vector_db, llm, retrieval).
 
-## 🏗️ Pipeline
+## 🏗️ Arsitektur
 
 ```
-Document → Detection → Parsing → Cleaning → Hierarchy →
-Semantic Block → Chunk Builder → Metadata → Validator → Export
+v1 (chunking, TIDAK BERUBAH):         v2 (RAG, di atas v1):
+Document → Parse → Clean → Chunk  →  IndexPipeline   →  ChromaDB
+                                    (embed + store)
+
+                                   QueryPipeline    →  Retrieve → LLM → Answer
+                                    (embed query)
+
+                                   REST API + Web UI →  expose index/query
 ```
 
 ## 🧪 Testing
 
 ```bash
 pip install -e ".[dev]"
-pytest
+pytest  # 57 tests passing
 ```
 
 ## 📦 Tech Stack
 
-Python 3.11+ · Typer · Pydantic · Rich · Loguru · Docling · PyMuPDF · python-docx · openpyxl · BeautifulSoup4 · tiktoken · pytest
+**v1**: Python 3.11+ · Typer · Pydantic · Rich · Loguru · Docling · PyMuPDF · python-docx · openpyxl · BeautifulSoup4 · tiktoken
+
+**v2**: ChromaDB · sentence-transformers (BGE-m3) · OpenAI API · FastAPI · Uvicorn · Gradio
 
 ---
 
-SiberRAG v1 — fokus pada kualitas chunk. Embedding, retrieval, dan chatbot menyusul di versi berikutnya.
+SiberRAG — dari dokumen mentah ke jawaban. Modular, configurable, privasi-first (embedding & query bisa full-offline).

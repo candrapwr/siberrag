@@ -38,6 +38,23 @@ dependencies = [
 docling = ["docling>=2.5.0"]
 # Deteksi bahasa untuk metadata (opsional); bila tidak ada, fallback heuristik
 langdetect = ["langdetect>=1.0.9"]
+
+# v2 - RAG
+# Embedding lokal (sentence-transformers/BGE-m3) + vector DB (ChromaDB)
+rag = [
+    "chromadb>=0.5.0",
+    "sentence-transformers>=3.0.0",
+    "numpy>=1.26.0",
+]
+# Embedding + LLM via OpenAI API (OpenAI-compatible endpoint)
+rag-openai = ["openai>=1.30.0"]
+# REST API server
+api = ["fastapi>=0.110.0", "uvicorn[standard]>=0.29.0"]
+# Web UI chat interface
+ui = ["gradio>=4.20.0"]
+# Meta: semua RAG capability sekaligus
+all = ["siberrag[rag,rag-openai,api,ui]"]
+
 dev = [
     "pytest>=8.0.0",
     "pytest-cov>=5.0.0",
@@ -48,7 +65,7 @@ siberrag = "siberrag_cli.main:app"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["siberrag_core*", "siberrag_cli*"]
+include = ["siberrag_core*", "siberrag_cli*", "siberrag_api*", "siberrag_ui*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

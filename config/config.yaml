@@ -50,3 +50,43 @@ export:
   pretty_json: true
   include_metadata: true
   overwrite: true
+
+# ============================================================
+# v2 - RAG (Embedding / Vector DB / LLM / Retrieval)
+# ============================================================
+
+# ---- Embedding (hybrid: local default, bisa switch ke API) ----
+# Provider:
+#   local  -> sentence-transformers (BGE-m3), gratis & offline
+#   openai -> OpenAI resmi (text-embedding-3-small/large)
+#   custom -> endpoint OpenAI-compatible APA SAJA (Jina/Cohere/Together/Ollama/LM Studio/dll)
+embedding:
+  provider: "custom"           # "local" | "openai" | "custom"
+  model: "BAAI/bge-m3"        # utk openai: text-embedding-3-small; sesuaikan dgn provider
+  dim: 1024                   # sesuaikan: BGE-m3=1024, OpenAI-3-small=1536, dll
+  batch_size: 32
+  api_key: ""                 # utk openai/custom: set env OPENAI_API_KEY atau isi di sini (boleh kosong utk endpoint lokal)
+  api_base: ""                # utk custom: isi URL endpoint, mis. https://api.openai.com/v1 atau http://localhost:11434/v1
+
+# ---- Vector Database ----
+vector_db:
+  backend: "chroma"           # hanya ChromaDB (embedded, simpan ke disk)
+  collection: "siberrag"      # nama collection
+  path: "./vectorstore"       # direktori persisten ChromaDB
+  distance: "cosine"
+
+# ---- LLM (OpenAI-compatible API) ----
+llm:
+  provider: "openai"
+  model: "gpt-4o-mini"
+  api_key: ""                 # kosongkan -> ambil dari env OPENAI_API_KEY
+  api_base: ""                # mis. https://api.openai.com/v1 (atau LM Studio/vLLM lokal)
+  temperature: 0.3
+  max_tokens: 1024
+
+# ---- Retrieval & RAG flow ----
+retrieval:
+  top_k: 5                    # jumlah chunk relevan yang di-retrieve
+  score_threshold: 0.3        # filter chunk dengan relevansi < threshold
+  filter_by_document: false   # scope query ke document_id tertentu
+

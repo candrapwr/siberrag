@@ -66,6 +66,59 @@ class ExportConfig(BaseModel):
     overwrite: bool = True
 
 
+# ============================================================
+# v2 - RAG config sections
+# ============================================================
+
+
+class EmbeddingConfig(BaseModel):
+    """Konfigurasi embedding (hybrid: local default, bisa switch ke API).
+
+    Provider yang didukung:
+    - ``local``: sentence-transformers (BGE-m3), gratis & offline
+    - ``openai``: OpenAI resmi (text-embedding-3-*)
+    - ``custom``: endpoint OpenAI-compatible APA SAJA (Jina/Cohere/Together/Ollama/LM Studio/dll)
+    ``openai`` & ``custom`` identik logikanya; ``custom`` cuma dokumentasi bahwa
+    ini bukan OpenAI resmi. Isi ``api_base`` + ``api_key`` sesuai provider.
+    """
+
+    provider: Literal["local", "openai", "custom"] = "local"
+    model: str = "BAAI/bge-m3"  # multilingual, akurat untuk Bahasa Indonesia
+    dim: int = 1024
+    batch_size: int = 32
+    # untuk provider openai/custom (OpenAI-compatible endpoint)
+    api_key: str = ""  # bila kosong, ambil dari env OPENAI_API_KEY (boleh kosong utk lokal)
+    api_base: str = ""  # mis. https://api.openai.com/v1 atau http://localhost:11434/v1
+
+
+class VectorDBConfig(BaseModel):
+    """Konfigurasi vector database (ChromaDB embedded)."""
+
+    backend: Literal["chroma"] = "chroma"
+    collection: str = "siberrag"
+    path: str = "./vectorstore"  # direktori persisten ChromaDB
+    distance: Literal["cosine"] = "cosine"
+
+
+class LLMConfig(BaseModel):
+    """Konfigurasi LLM untuk generation (OpenAI-compatible API)."""
+
+    provider: Literal["openai"] = "openai"
+    model: str = "gpt-4o-mini"
+    api_key: str = ""  # bila kosong, ambil dari env OPENAI_API_KEY
+    api_base: str = ""  # mis. https://api.openai.com/v1
+    temperature: float = 0.3
+    max_tokens: int = 1024
+
+
+class RetrievalConfig(BaseModel):
+    """Konfigurasi retrieval & RAG flow."""
+
+    top_k: int = 5
+    score_threshold: float = 0.3  # filter chunk dengan relevansi di bawah threshold
+    filter_by_document: bool = False  # scope query ke document_id tertentu
+
+
 class AppConfig(BaseModel):
     """Konfigurasi lengkap SiberRAG."""
 
@@ -75,6 +128,11 @@ class AppConfig(BaseModel):
     validation: ValidationConfig = Field(default_factory=ValidationConfig)
     metadata: MetadataConfig = Field(default_factory=MetadataConfig)
     export: ExportConfig = Field(default_factory=ExportConfig)
+    # v2 RAG
+    embedding: EmbeddingConfig = Field(default_factory=EmbeddingConfig)
+    vector_db: VectorDBConfig = Field(default_factory=VectorDBConfig)
+    llm: LLMConfig = Field(default_factory=LLMConfig)
+    retrieval: RetrievalConfig = Field(default_factory=RetrievalConfig)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "AppConfig":
