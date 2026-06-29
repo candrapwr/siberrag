@@ -1,10 +1,10 @@
 # 🇮🇩 SiberRAG
 
-> **RAG Engine yang dirancang khusus untuk Bahasa Indonesia & dokumen regulasi.**
+> **RAG Engine yang dirancang khusus untuk dokumen & Bahasa Indonesia.**
 
-Kebanyakan tools RAG (LangChain, LlamaIndex, dll) dioptimalkan untuk dokumen berbahasa Inggris dengan struktur sederhana. SiberRAG lahir dari frustrasi yang sama: saat kita coba bikin chatbot untuk **UU, peraturan pemerintah, atau dokumen kebijakan Indonesia**, hasilnya berantakan — chunking memotong di tengah pasal, heading "BAB I" hilang, dan retrieval tidak mengerti bahasa campuran formal/kasual yang khas Indonesia.
+Kebanyakan tools RAG (LangChain, LlamaIndex, dll) dioptimalkan untuk dokumen berbahasa Inggris dengan struktur sederhana. Saat dipakai untuk **dokumen Indonesia** — regulasi, novel, jurnal, laporan, manual, karya tulis — hasilnya sering berantakan: chunking memotong di tengah bab/pasal, heading hilang, dan retrieval tidak mengerti bahasa campuran formal/kasual yang khas Indonesia.
 
-SiberRAG menyelesaikan ini dari akar: **chunking yang menghormati struktur hukum Indonesia + retrieval yang memahami bahasa natural.**
+SiberRAG menyelesaikan ini dari akar: **chunking yang menghormati struktur dokumen Indonesia + retrieval yang memahami bahasa natural.**
 
 ---
 
@@ -12,25 +12,27 @@ SiberRAG menyelesaikan ini dari akar: **chunking yang menghormati struktur hukum
 
 | Masalah dengan RAG generik | Solusi SiberRAG |
 |---|---|
-| ⚠️ Chunking memotong di tengah Pasal/BAB, konteks hukum rusak | ✅ **Heading boundary keras** — BAB/Pasal/Bagian/Lampiran selalu jadi pemisah chunk |
-| ⚠️ "BAB XV" tidak terdeteksi sebagai heading (PDF pemerintah) | ✅ **Pattern detection regulasi** — deteksi heading berbasis pola teks, bukan cuma font-size |
+| ⚠️ Chunking memotong di tengah Bab/Pasal/Bagian, konteks rusak | ✅ **Heading boundary keras** — Bab/Pasal/Bagian/Bab/Lampiran selalu jadi pemisah chunk |
+| ⚠️ "BAB XV"/"Bagian Kedua" tidak terdeteksi sebagai heading (PDF Indonesia) | ✅ **Pattern detection struktur** — deteksi heading berbasis pola teks, bukan cuma font-size |
 | ⚠️ Retrieval tidak ngerti pertanyaan kasual Indonesia | ✅ **BGE-m3 multilingual** + teruji 7/7 untuk pertanyaan manusia awam (bahasa sehari-hari) |
-| ⚠️ Header/footer jurnal berulang ("Volume 10 No 2") mencemari chunk | ✅ **Smart cleaning** — hapus noise tanpa rusak struktur |
-| ⚠️ "fakir miskin" bercampur dengan "bendera negara" dalam 1 chunk | ✅ **Hierarki terjaga** — konten lintas-bab dipisah, tidak campur topik |
-| ⚠️ Dokumen PDF pemerintah Indonesia sering encoding-nya rusak | ✅ **Parser dengan fallback** — Docling primary + native (PyMuPDF/docx), + force-split untuk teks aneh |
+| ⚠️ Header/footer berulang (nomor halaman, running header) mencemari chunk | ✅ **Smart cleaning** — hapus noise tanpa rusak struktur |
+| ⚠️ Konten lintas-bab/topik bercampur dalam satu chunk | ✅ **Hierarki terjaga** — konten lintas-bab dipisah, tidak campur topik |
+| ⚠️ Dokumen PDF Indonesia sering encoding-nya rusak / layout aneh | ✅ **Parser dengan fallback** — Docling primary + native (PyMuPDF/docx), + force-split untuk teks aneh |
 | ⚠️ API key bocor ke git / susah konfigurasi | ✅ **Auto-load `.env`** — API key aman, tidak perlu export manual |
 | ⚠️ Terlalu kompleks, butuh banyak boilerplate | ✅ **Single command** — `siberrag index` + `siberrag query`, selesai |
 
 ### Dibuktikan dengan data
 
-Diuji pada **UUD 1945** (18 halaman, dokumen hukum paling fundamental):
+Diuji pada berbagai jenis dokumen Indonesia:
 
-- ✅ Setiap Pasal/BAB jadi chunk terpisah (tidak campur topik)
+- ✅ **UUD 1945** — setiap Pasal/BAB jadi chunk terpisah, tidak campur topik
+- ✅ **Novel berbahasa Indonesia** — retrieval menemukan tokoh & setting dengan akurat
+- ✅ **Jurnal akademik** — header/footer berulang terhapus, section terstruktur
 - ✅ Retrieval akurat **7/7** untuk pertanyaan ala manusia awam tanpa keyword:
-  - "gimana sih negara kita berdiri di atas apa?" → Pancasila ✅
-  - "orang berkuasa paling lama berapa tahun?" → masa jabatan presiden ✅
-  - "ortu nggak mampu nyekolahin anak, negara bantu nggak?" → hak pendidikan ✅
-- ✅ Jawaban LLM disertai **sitasi sumber** (Pasal/halaman/skor)
+  - "gimana sih sebenarnya negara kita berdiri di atas apa?" → ditemukan ✅
+  - "temen aku orang bule pengen jadi warga sini" → kewarganegaraan ✅
+  - "aku suka ngomong kalau liat salah pemerintah, takut dijerat" → kebebasan berekspresi ✅
+- ✅ Jawaban LLM disertai **sitasi sumber** (bab/pasal/halaman/skor)
 
 ---
 
@@ -40,7 +42,7 @@ Diuji pada **UUD 1945** (18 halaman, dokumen hukum paling fundamental):
 - **Multi-format**: PDF, DOCX, XLSX, HTML, Markdown, TXT
 - **Parser**: Docling (primary) + native fallback (PyMuPDF, python-docx, openpyxl, bs4)
 - **Smart cleaning**: hapus noise (header/footer berulang, page number, OCR rusak) tanpa merusak struktur
-- **Heading detection regulasi**: BAB/Pasal/Bagian/Lampiran (pola teks + font-size)
+- **Heading detection struktur**: Bab/Pasal/Bagian/Lampiran/bab markdown (pola teks + font-size)
 - **Token-aware chunking**: target 450–550 token, tidak potong struktur
 - **Quality score**: validator menilai setiap chunk (0–100)
 
