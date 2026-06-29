@@ -1,56 +1,79 @@
-# SiberRAG
+# 🇮🇩 SiberRAG
 
-> **Document Preprocessing & RAG Engine** — chunking dokumen berkualitas tinggi + tanya-jawab (RAG) untuk Retrieval-Augmented Generation.
+> **RAG Engine yang dirancang khusus untuk Bahasa Indonesia & dokumen regulasi.**
 
-SiberRAG mengubah dokumen (PDF, DOCX, XLSX, HTML, Markdown, TXT) menjadi chunk terstruktur, lalu mengindeksnya ke vector database sehingga bisa ditanya-jawab dengan jawaban + sitasi sumber.
+Kebanyakan tools RAG (LangChain, LlamaIndex, dll) dioptimalkan untuk dokumen berbahasa Inggris dengan struktur sederhana. SiberRAG lahir dari frustrasi yang sama: saat kita coba bikin chatbot untuk **UU, peraturan pemerintah, atau dokumen kebijakan Indonesia**, hasilnya berantakan — chunking memotong di tengah pasal, heading "BAB I" hilang, dan retrieval tidak mengerti bahasa campuran formal/kasual yang khas Indonesia.
 
-- **v1 — Document Preprocessing**: chunking multi-format dengan kualitas tinggi
-- **v2 — RAG Penuh**: embedding + vector DB + retrieval + LLM generation + REST API + Web UI
+SiberRAG menyelesaikan ini dari akar: **chunking yang menghormati struktur hukum Indonesia + retrieval yang memahami bahasa natural.**
 
-📖 **[Panduan pemakaian lengkap → docs/USAGE.md](docs/USAGE.md)**
+---
+
+## ❓ Kenapa SiberRAG? (Bukan LangChain/LlamaIndex biasa)
+
+| Masalah dengan RAG generik | Solusi SiberRAG |
+|---|---|
+| ⚠️ Chunking memotong di tengah Pasal/BAB, konteks hukum rusak | ✅ **Heading boundary keras** — BAB/Pasal/Bagian/Lampiran selalu jadi pemisah chunk |
+| ⚠️ "BAB XV" tidak terdeteksi sebagai heading (PDF pemerintah) | ✅ **Pattern detection regulasi** — deteksi heading berbasis pola teks, bukan cuma font-size |
+| ⚠️ Retrieval tidak ngerti pertanyaan kasual Indonesia | ✅ **BGE-m3 multilingual** + teruji 7/7 untuk pertanyaan manusia awam (bahasa sehari-hari) |
+| ⚠️ Header/footer jurnal berulang ("Volume 10 No 2") mencemari chunk | ✅ **Smart cleaning** — hapus noise tanpa rusak struktur |
+| ⚠️ "fakir miskin" bercampur dengan "bendera negara" dalam 1 chunk | ✅ **Hierarki terjaga** — konten lintas-bab dipisah, tidak campur topik |
+| ⚠️ Dokumen PDF pemerintah Indonesia sering encoding-nya rusak | ✅ **Parser dengan fallback** — Docling primary + native (PyMuPDF/docx), + force-split untuk teks aneh |
+| ⚠️ API key bocor ke git / susah konfigurasi | ✅ **Auto-load `.env`** — API key aman, tidak perlu export manual |
+| ⚠️ Terlalu kompleks, butuh banyak boilerplate | ✅ **Single command** — `siberrag index` + `siberrag query`, selesai |
+
+### Dibuktikan dengan data
+
+Diuji pada **UUD 1945** (18 halaman, dokumen hukum paling fundamental):
+
+- ✅ Setiap Pasal/BAB jadi chunk terpisah (tidak campur topik)
+- ✅ Retrieval akurat **7/7** untuk pertanyaan ala manusia awam tanpa keyword:
+  - "gimana sih negara kita berdiri di atas apa?" → Pancasila ✅
+  - "orang berkuasa paling lama berapa tahun?" → masa jabatan presiden ✅
+  - "ortu nggak mampu nyekolahin anak, negara bantu nggak?" → hak pendidikan ✅
+- ✅ Jawaban LLM disertai **sitasi sumber** (Pasal/halaman/skor)
 
 ---
 
 ## ✨ Fitur
 
-### v1: Document Preprocessing
-- 🔍 **Multi-format parser**: Docling primary + fallback native (PyMuPDF, python-docx, openpyxl, BeautifulSoup4)
-- 🧹 **Smart cleaning**: hapus noise tanpa merusak struktur (header/footer berulang, page number, OCR rusak)
-- 🌳 **Hierarchy + Semantic**: struktur tree, heading/list/table tetap utuh, konten lintas-bab dipisah
-- ✂️ **Token-aware chunking**: target 450–550 token, overlap 80–100, tidak potong struktur
-- ✅ **Validator**: quality score 0–100 + warnings
+### 📄 Document Preprocessing (v1)
+- **Multi-format**: PDF, DOCX, XLSX, HTML, Markdown, TXT
+- **Parser**: Docling (primary) + native fallback (PyMuPDF, python-docx, openpyxl, bs4)
+- **Smart cleaning**: hapus noise (header/footer berulang, page number, OCR rusak) tanpa merusak struktur
+- **Heading detection regulasi**: BAB/Pasal/Bagian/Lampiran (pola teks + font-size)
+- **Token-aware chunking**: target 450–550 token, tidak potong struktur
+- **Quality score**: validator menilai setiap chunk (0–100)
 
-### v2: RAG
-- 🧠 **Embedding hybrid**: local (BGE-m3, gratis/offline) atau API custom (DeepInfra/OpenAI/Jina/Ollama/dll)
-- 💾 **ChromaDB**: vector database embedded, simpan ke disk
-- 🔎 **Retrieval**: semantic search + score filtering (memahami Bahasa Indonesia natural, bukan keyword)
-- 🤖 **LLM generation**: OpenAI-compatible API (GPT-4o, Llama 3, Qwen, dll via DeepInfra/Ollama/dll)
-- 🌐 **REST API**: FastAPI (index/query/stats endpoints)
-- 💬 **Web UI**: Gradio chat interface dengan source citations
-- 🔐 **Auto-load `.env`**: API key aman, tidak perlu export manual
+### 🧠 RAG Penuh (v2)
+- **Embedding hybrid**: local BGE-m3 (gratis/offline) atau API custom (DeepInfra/OpenAI/Jina/Ollama)
+- **Vector DB**: ChromaDB (embedded, simpan ke disk)
+- **Retrieval semantik**: memahami Bahasa Indonesia natural, bukan keyword match
+- **LLM generation**: OpenAI-compatible (GPT-4o, Llama 3, Qwen via DeepInfra/Ollama)
+- **REST API**: FastAPI (index/query/stats)
+- **Web UI**: Gradio chat dengan source citations
+- **Auto-load `.env`**: API key aman
 
 ---
 
 ## 🚀 Quick Start
 
-### 1. Instalasi
+### 1. Install
 
 ```bash
 git clone <repo> && cd siberrag
-python -m venv .venv && source .venv/bin/activate
-pip install -e ".[rag,rag-openai,api]"   # RAG + API server
+python3.11 -m venv .venv && source .venv/bin/activate
+pip install -e ".[rag,rag-openai,api,ui]"
 ```
 
-### 2. Konfigurasi API key (untuk embedding + LLM)
+### 2. Set API key
 
-Buat file `.env` di root proyek (sudah di-gitignore, aman):
 ```bash
 cp .env.example .env
-# Edit .env, isi:
-# OPENAI_API_KEY=key-deepinfra-anda
+# Edit .env: OPENAI_API_KEY=key-deepinfra-anda
 ```
 
-Set provider di `config/config.yaml`:
+### 3. Set provider di `config/config.yaml`
+
 ```yaml
 embedding:
   provider: "custom"
@@ -64,69 +87,71 @@ llm:
   api_base: "https://api.deepinfra.com/v1"
 ```
 
-### 3. Pakai
+### 4. Index & tanya jawab
 
 ```bash
-# Index dokumen ke vector DB (sekali per dokumen)
-siberrag index regulasi.pdf
+# Index dokumen (sekali per dokumen)
+siberrag index uu.pdf
 
 # Tanya jawab
 siberrag query "Apa kewajiban penyelenggara sistem elektronik?"
-
-# Lihat sumber saja tanpa LLM (gratis, cepat)
-siberrag query "..." --retrieve-only
-
-# Jalankan REST API + Web UI
-siberrag serve
 ```
 
-📖 Detail lengkap: **[docs/USAGE.md](docs/USAGE.md)**
+### 5. (Opsional) Web UI
 
----
-
-## ⚙️ Konfigurasi
-
-Semua parameter diatur via `config/config.yaml` — v1 (parsing, cleaning, chunking, export) dan v2 (embedding, vector_db, llm, retrieval).
-
-Lihat config aktif:
 ```bash
-siberrag info
+python -m siberrag_ui.app
+# Buka http://127.0.0.1:7860
 ```
+
+📖 **[Panduan pemakaian lengkap → docs/USAGE.md](docs/USAGE.md)**
 
 ---
 
 ## 🏗️ Arsitektur
 
 ```
-v1 (chunking, TIDAK BERUBAH):         v2 (RAG, di atas v1):
-Document → Parse → Clean → Chunk  →  IndexPipeline   →  ChromaDB
-                                    (embed + store)
+v1 (chunking):                         v2 (RAG):
+Document → Parse → Clean → Chunk  →   IndexPipeline  →  ChromaDB
+  ↑ pattern detection BAB/Pasal           (embed + store)
+  ↑ heading boundary keras
+                                        QueryPipeline →  Retrieve → LLM → Answer
+                                          (embed query)
 
-                                   QueryPipeline    →  Retrieve → LLM → Answer
-                                    (embed query)
-
-                                   REST API + Web UI →  expose index/query
+                                        REST API + Web UI
 ```
 
-Engine chunking v1 **tidak diubah sama sekali** — IndexPipeline memanggilnya untuk dapat chunk, lalu embed + store.
+Engine chunking v1 **tidak diubah** — IndexPipeline memanggilnya untuk dapat chunk, lalu embed + store.
 
 ---
 
-## 🧪 Testing
+## 🧪 Kualitas & Testing
 
 ```bash
 pip install -e ".[dev]"
 pytest                              # 103 tests passing
-pytest tests/test_v2_pipeline.py    # test RAG end-to-end
 ```
+
+Mencakup: chunking, cleaning, hierarchy, embeddings, vectorstore, retrieval, generation, pipeline end-to-end (dengan mock embedder/LLM — cepat & offline).
 
 ---
 
 ## 📦 Tech Stack
 
-**v1**: Python 3.11+ · Typer · Pydantic · Rich · Loguru · Docling · PyMuPDF · python-docx · openpyxl · BeautifulSoup4 · tiktoken
+| Lapisan | Teknologi |
+|---|---|
+| CLI | Typer, Rich |
+| Config | Pydantic, PyYAML, python-dotenv |
+| Parsing | Docling, PyMuPDF, python-docx, openpyxl, BeautifulSoup4 |
+| Chunking | tiktoken (token-aware) |
+| Embedding | sentence-transformers (BGE-m3) / OpenAI-compatible API |
+| Vector DB | ChromaDB |
+| LLM | OpenAI-compatible (GPT-4o, Llama 3, Qwen, dll) |
+| API | FastAPI, Uvicorn |
+| UI | Gradio |
+| Testing | pytest (103 tests) |
 
-**v2**: ChromaDB · sentence-transformers (BGE-m3) · OpenAI SDK · FastAPI · Uvicorn · Gradio · python-dotenv
+Python 3.11+
 
 ---
 
@@ -136,4 +161,4 @@ MIT
 
 ---
 
-SiberRAG — dari dokumen mentah ke jawaban. Modular, configurable, privasi-first (embedding & query bisa full-offline dengan model lokal).
+**SiberRAG** — RAG yang mengerti Bahasa Indonesia & struktur dokumen regulasi. Dibangun dari pengalaman nyata, bukan teori.
