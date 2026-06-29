@@ -40,6 +40,11 @@ class ChunkingConfig(BaseModel):
     overlap_tokens: int = 90
     encoding: str = "cl100k_base"
     split_on_paragraph: bool = True
+    # Heading sebagai pemisah KERAS: setiap heading SELALU memulai chunk baru,
+    # terlepas dari ukuran chunk sebelumnya. Mencegah konten lintas-bab/pasal
+    # tercampur dalam satu chunk (penting untuk dokumen regulasi seperti UUD).
+    # Trade-off: dokumen dengan banyak heading pendek menghasilkan chunk undersized.
+    respect_heading_boundary: bool = True
     # Prepend konteks chapter/section ke teks chunk untuk meningkatkan retrieval.
     # Konteks ditambahkan sebagai baris header di awal chunk, mis:
     #   "[Bab I - Ketentuan Umum > Pasal 1]"

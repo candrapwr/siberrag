@@ -92,8 +92,10 @@ def test_numbered_list_preserves_sequence():
 
 
 def test_global_merge_avoids_undersized():
-    """Block kecil berurutan harus digabung agar tidak undersized."""
-    cfg = ChunkingConfig(target_tokens=500, min_tokens=100, max_tokens=700)
+    """Block kecil berurutan harus digabung agar tidak undersized (soft boundary)."""
+    # respect_heading_boundary=False agar heading bukan hard split (uji merge)
+    cfg = ChunkingConfig(target_tokens=500, min_tokens=100, max_tokens=700,
+                         respect_heading_boundary=False)
     chunker = Chunker(cfg)
     # 3 block kecil terpisah (simulasi pasal-pasal pendek)
     blocks = []
@@ -112,6 +114,23 @@ def test_global_merge_avoids_undersized():
     assert "Pasal 2" in chunks[0].text
 
 
+def test_hard_boundary_keeps_pasal_separate():
+    """respect_heading_boundary=True: pasal kecil TETAP terpisah walau undersized."""
+    cfg = ChunkingConfig(target_tokens=500, min_tokens=100, max_tokens=700,
+                         respect_heading_boundary=True)
+    chunker = Chunker(cfg)
+    blocks = []
+    for i in range(3):
+        para = DocumentElement(type=ElementType.PARAGRAPH,
+                               content=f"Isi pasal {i} yang pendek.")
+        blocks.append(SemanticBlock(block_type="heading", title=f"Pasal {i}",
+                                    chapter="Bab", section=f"Pasal {i}",
+                                    elements=[para]))
+    chunks = chunker.chunk(blocks, document_id="doc", filename="f.txt")
+    # hard boundary: 3 pasal jadi 3 chunk terpisah (bukan 1 chunk gabungan)
+    assert len(chunks) == 3
+
+
 def test_prepend_context_header():
     """prepend_context=True menambahkan header konteks di awal chunk."""
     cfg = ChunkingConfig(target_tokens=500, min_tokens=10, max_tokens=700,
@@ -127,8 +146,9 @@ def test_prepend_context_header():
 
 def test_cross_chapter_transition_marker():
     """Saat block lintas-chapter digabung, penanda chapter baru disisipkan."""
+    # respect_heading_boundary=False agar 2 block bisa digabung (uji marker)
     cfg = ChunkingConfig(target_tokens=500, min_tokens=10, max_tokens=700,
-                         prepend_context=False)
+                         prepend_context=False, respect_heading_boundary=False)
     chunker = Chunker(cfg)
     blocks = [
         SemanticBlock(block_type="heading", title="Pasal 1", chapter="Bab I",
