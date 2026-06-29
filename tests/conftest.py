@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 
 import pytest
@@ -11,6 +12,125 @@ from siberrag_core.models.elements import (
     DocumentElement,
     ElementType,
 )
+
+
+# ============================================================
+# v2 fixtures - mock embedder/LLM (offline, deterministik)
+# ============================================================
+
+
+class MockEmbedder:
+    """Embedder mock deterministik: hash teks -> vektor.
+
+    Menghasilkan vektor yang konsisten untuk teks yang sama, sehingga
+    retrieval bisa diuji tanpa model/API asli. Vektor "mirip" untuk teks
+    yang berbagi kata (berbasis bag-of-words sederhana).
+    """
+
+    name = "mock"
+    _DIM = 64
+
+    def __init__(self, config=None) -> None:
+        self.config = config
+        self._vocab: dict[str, int] = {}
+
+    def _text_to_vec(self, text: str) -> list[float]:
+        vec = [0.0] * self._DIM
+        # normalisasi: lowercase + split kata
+        words = [w.strip(".,;:!?\"'()[]").lower() for w in text.split()]
+        for w in words:
+            if not w:
+                continue
+            if w not in self._vocab:
+                # index deterministik dari hash kata
+                self._vocab[w] = int(hashlib.md5(w.encode()).hexdigest(), 16) % self._DIM
+            vec[self._vocab[w]] += 1.0
+        # L2 normalize
+        norm = sum(v * v for v in vec) ** 0.5
+        if norm > 0:
+            vec = [v / norm for v in vec]
+        return vec
+
+    def embed(self, text: str) -> list[float]:
+        return self._text_to_vec(text)
+
+    def embed_batch(self, texts: list[str]) -> list[list[float]]:
+        return [self._text_to_vec(t) for t in texts]
+
+    @property
+    def dimension(self) -> int:
+        return self._DIM
+
+
+class MockLLM:
+    """LLM mock: kembalikan jawaban deterministik dari pesan user."""
+
+    name = "mock"
+
+    def __init__(self, config=None) -> None:
+        self.config = config
+        self.calls: list[list[dict]] = []
+
+    def generate(self, messages: list[dict[str, str]]) -> str:
+        self.calls.append(messages)
+        # ekstrak pertanyaan dari pesan user terakhir
+        user_msg = ""
+        for m in reversed(messages):
+            if m["role"] == "user":
+                user_msg = m["content"]
+                break
+        return f"[MOCK ANSWER] Berdasarkan konteks, jawaban untuk: {user_msg[:50]}"
+
+
+@pytest.fixture
+def mock_embedder() -> "MockEmbedder":
+    """Embedder mock deterministik (offline)."""
+    return MockEmbedder()
+
+
+@pytest.fixture
+def mock_llm() -> "MockLLM":
+    """LLM mock deterministik (offline)."""
+    return MockLLM()
+
+
+@pytest.fixture
+def sample_chunks() -> list:
+    """Daftar chunk sample untuk testing vectorstore/retriever."""
+    from siberrag_core.models.chunk import Chunk, ChunkMetadata
+
+    return [
+        Chunk(
+            id="doc_c0000",
+            text="Kucing adalah hewan mamalia yang suka memakan ikan dan tidur.",
+            metadata=ChunkMetadata(
+                id="doc_c0000", document_id="doc", filename="hewan.txt",
+                page_start=1, page_end=1, chapter="Mamalia", section="Kucing",
+                chunk_index=0, total_chunk=3, token_count=15, word_count=10,
+                language="id", block_type="paragraph",
+            ),
+        ),
+        Chunk(
+            id="doc_c0001",
+            text="Anjing adalah hewan peliharaan setia yang bisa diajak bermain.",
+            metadata=ChunkMetadata(
+                id="doc_c0001", document_id="doc", filename="hewan.txt",
+                page_start=1, page_end=1, chapter="Mamalia", section="Anjing",
+                chunk_index=1, total_chunk=3, token_count=14, word_count=9,
+                language="id", block_type="paragraph",
+            ),
+        ),
+        Chunk(
+            id="tekno_c0000",
+            text="Python adalah bahasa pemrograman populer untuk data science.",
+            metadata=ChunkMetadata(
+                id="tekno_c0000", document_id="tekno", filename="tekno.txt",
+                page_start=1, page_end=1, chapter="Programming", section="Python",
+                chunk_index=0, total_chunk=1, token_count=10, word_count=8,
+                language="id", block_type="paragraph",
+            ),
+        ),
+    ]
 
 
 @pytest.fixture
