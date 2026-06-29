@@ -18,6 +18,10 @@ import os
 from pathlib import Path
 from typing import Optional
 
+# Muat .env SEBELUM config/provider diinisialisasi.
+from siberrag_core.utils.env import load_env
+load_env()
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
