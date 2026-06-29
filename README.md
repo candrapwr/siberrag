@@ -112,72 +112,50 @@ python -m siberrag_ui.app
 
 ## 🏗️ Arsitektur
 
-SiberRAG punya 2 alur utama yang dibangun di atas engine chunking yang sama:
+SiberRAG punya 2 alur utama yang dibangun di atas engine chunking yang sama.
 
 ### Alur 1 — Indexing (dokumen → vector DB)
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    INDEX PIPELINE                            │
-│                                                              │
-│  Dokumen    ┌──────────── V1 CHUNKING ────────────┐         │
-│  (PDF/DOCX/ │                                       │         │
-│   MD/TXT/   │  Parse → Clean → Hierarchy → Chunk   │         │
-│   HTML/XLSX)│       │                              │         │
-│             │       ├─ hapus noise (header/footer) │         │
-│             │       ├─ deteksi Bab/Pasal/Bagian    │         │
-│             │       └─ pisahkan per struktur       │         │
-│             └───────────────┬───────────────────────┘         │
-│                             ▼                                │
-│                     Chunk + Metadata                         │
-│                             │                                │
-│                             ▼                                │
-│                    ┌─── EMBEDDING ───┐                       │
-│                    │  BGE-m3 (local) │   atau   │  OpenAI-compat API │
-│                    └────────┬────────┘                       │
-│                             ▼                                │
-│                    ┌─── VECTOR DB ───┐                       │
-│                    │    ChromaDB     │  (simpan ke disk)      │
-│                    └─────────────────┘                       │
-└─────────────────────────────────────────────────────────────┘
+
+```mermaid
+graph TD
+    A["📄 Dokumen<br/>(PDF/DOCX/MD/TXT/HTML/XLSX)"] --> B[Parse - ubah jadi struktur]
+    B --> C["🧹 Cleaning<br/>(hapus header/footer/noise)"]
+    C --> D["🌳 Hierarchy<br/>(deteksi Bab/Pasal/Bagian)"]
+    D --> E["✂️ Chunking<br/>(pisahkan per struktur, token-aware)"]
+    E --> F["Chunk + Metadata"]
+    F --> G["🧠 Embedding<br/>(BGE-m3 / OpenAI API)"]
+    G --> H["💾 ChromaDB<br/>(simpan ke disk)"]
+
+    style A fill:#fef3c7,stroke:#f59e0b
+    style H fill:#dbeafe,stroke:#3b82f6
 ```
 
 ### Alur 2 — Query (pertanyaan → jawaban)
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    QUERY PIPELINE                            │
-│                                                              │
-│  Pertanyaan ──→ Embedding ──→ ┌─── VECTOR DB ───┐           │
-│  (bahasa natural)             │  search top-k   │           │
-│                               │  chunk relevan  │           │
-│                               └────────┬────────┘           │
-│                                        ▼                     │
-│                               ┌─── RAG PROMPT ──┐           │
-│                               │ system + context│           │
-│                               │ + pertanyaan    │           │
-│                               └────────┬────────┘           │
-│                                        ▼                     │
-│                               ┌────── LLM ──────┐           │
-│                               │ GPT-4o / Llama  │           │
-│                               └────────┬────────┘           │
-│                                        ▼                     │
-│                               Jawaban + Sumber              │
-│                               (sitasi pasal/hal)            │
-└─────────────────────────────────────────────────────────────┘
+
+```mermaid
+graph TD
+    A["❓ Pertanyaan<br/>(bahasa natural)"] --> B["🧠 Embedding<br/>(BGE-m3 / OpenAI API)"]
+    B --> C["🔍 Cari di ChromaDB<br/>(top-k chunk relevan)"]
+    C --> D{Ada konteks relevan?}
+    D -- Tidak --> E["⚠️ Jawab: tidak ditemukan"]
+    D -- Ya --> F["📝 RAG Prompt<br/>(system + context + pertanyaan)"]
+    F --> G["🤖 LLM<br/>(GPT-4o / Llama 3 / Qwen)"]
+    G --> H["✅ Jawaban + Sumber<br/>(sitasi bab/pasal/halaman)"]
+
+    style A fill:#fef3c7,stroke:#f59e0b
+    style H fill:#d1fae5,stroke:#10b981
+    style E fill:#fee2e2,stroke:#ef4444
 ```
 
 ### Akses pengguna
-```
-        ┌──────────────┐     ┌──────────────┐
-        │  CLI (Typer) │     │  REST API    │
-        │  siberrag    │     │  (FastAPI)   │
-        └──────┬───────┘     └──────┬───────┘
-               │                     │
-               └──────────┬──────────┘
-                          ▼
-                 ┌──────────────┐
-                 │   Web UI     │
-                 │  (Gradio)    │
-                 └──────────────┘
+
+```mermaid
+graph LR
+    A["⌨️ CLI<br/>(siberrag index/query)"] --> D["SiberRAG Engine"]
+    B["🌐 REST API<br/>(FastAPI)"] --> D
+    C["💬 Web UI<br/>(Gradio)"] --> D
+
+    style D fill:#dbeafe,stroke:#3b82f6
 ```
 
 Engine chunking v1 **tidak diubah** — IndexPipeline memanggilnya untuk dapat chunk, lalu embed + store.
