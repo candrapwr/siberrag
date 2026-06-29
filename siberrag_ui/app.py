@@ -51,7 +51,11 @@ def format_sources(sources) -> str:
 
 
 def ask(question: str, top_k: int, history: list) -> tuple[str, list]:
-    """Handler chat: panggil QueryPipeline, kembalikan jawaban + sources."""
+    """Handler chat: panggil QueryPipeline, kembalikan jawaban + sources.
+
+    Gradio 6.x memakai format 'messages': setiap pesan adalah dict
+    {'role': 'user'|'assistant', 'content': '...'}.
+    """
     if not question.strip():
         return "", history
     try:
@@ -59,12 +63,12 @@ def ask(question: str, top_k: int, history: list) -> tuple[str, list]:
         answer = pipeline.query(question, top_k=max(1, top_k))
         sources_md = format_sources(answer.sources.hits)
         response = f"{answer.text}\n\n---\n{sources_md}"
-        history.append((question, response))
-        return "", history
     except Exception as exc:
-        error_msg = f"❌ Error: {exc}"
-        history.append((question, error_msg))
-        return "", history
+        response = f"❌ Error: {exc}"
+    # format messages: tambah pesan user + assistant
+    history.append({"role": "user", "content": question})
+    history.append({"role": "assistant", "content": response})
+    return "", history
 
 
 def build_ui():
