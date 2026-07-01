@@ -84,6 +84,7 @@ demo_output/
 
 # v2 - Vector database (ChromaDB) yang di-generate
 vectorstore/
+!siberrag_core/vectorstore/
 chroma*/
 *.sqlite3
 
