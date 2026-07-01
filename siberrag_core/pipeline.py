@@ -157,7 +157,10 @@ class Pipeline:
         try:
             # 2. Parsing
             progress.stage("Parsing documents...")
+            # pass progress ke parser agar bisa menampilkan progress bar per halaman
+            self.registry.set_progress(progress)
             document = self.registry.parse(path)
+            self.registry.set_progress(None)
 
             # 3. Cleaning
             progress.stage("Cleaning...")

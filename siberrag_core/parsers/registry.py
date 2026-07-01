@@ -48,9 +48,11 @@ _NATIVE_BY_EXT: dict[str, type[BaseParser]] = {
 _DOCLING_ONLY = {"pptx", "png", "jpg", "jpeg"}
 
 #: format biner yang Docling kuasai (mode "auto" prefer Docling untuk ini).
-#: Format text-native (md/html/txt/docx/xlsx) pakai parser native karena lebih
-#: akurat mempertahankan struktur (heading/list/table).
-_DOCLING_PREFERRED = {"pdf"} | _DOCLING_ONLY
+# Catatan: PDF dipindah ke NATIVE by default karena Docling v2.x selalu load &
+# menjalankan RapidOCR walau do_ocr=False, yang membuat parsing PDF sangat lambat.
+# Parser native PyMuPDF lebih cepat & tidak pernah OCR. Bila butuh Docling utk
+# PDF (mis. layout kompleks), set config: parsing.parser = "docling".
+_DOCLING_PREFERRED = _DOCLING_ONLY
 
 SUPPORTED_EXTENSIONS = set(_NATIVE_BY_EXT) | _DOCLING_ONLY
 
@@ -74,6 +76,16 @@ class ParserRegistry:
         self._docling: Optional[DoclingParser] = None
         # cache instance native
         self._native_cache: dict[type[BaseParser], BaseParser] = {}
+        # progress reporter (di-set oleh pipeline, dipropagate ke parser)
+        self._progress = None
+
+    def set_progress(self, progress) -> None:
+        """Set progress reporter untuk dipropagate ke parser (progress bar)."""
+        self._progress = progress
+
+    def _propagate_progress(self, parser: BaseParser) -> None:
+        """Pass progress reporter ke instance parser."""
+        parser._progress = self._progress
 
     # ----- public API -----
     def parse(self, path: Path, *, filename: Optional[str] = None) -> Document:
@@ -111,6 +123,7 @@ class ParserRegistry:
             raise ParseError(f"Tidak ada parser native untuk .{ext}; install Docling.")
         parser_cls = _NATIVE_BY_EXT[ext]
         parser = self._native_cache.setdefault(parser_cls, parser_cls(self._parsing_cfg))
+        self._propagate_progress(parser)
         return parser.parse(path, filename=filename)
 
     def _docling_only(self, path: Path, filename: Optional[str]) -> Document:
