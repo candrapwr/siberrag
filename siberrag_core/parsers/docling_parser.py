@@ -47,14 +47,33 @@ class DoclingParser(BaseParser):
             raise ParseError("Docling tidak terinstal.")
         if self._converter is None:
             logger.debug("Inisialisasi Docling DocumentConverter...")
-            self._converter = DocumentConverter()
+            # Konfigurasi pipeline: matikan OCR bila enable_ocr=False (default).
+            # Docling default SELALU inisialisasi OCR meski tidak dipakai, yang lambat.
+            try:
+                from docling.datamodel.pipeline_options import PdfPipelineOptions
+                from docling.datamodel.base_models import InputFormat
+                ocr_enabled = bool(getattr(self.config, "enable_ocr", False)) if self.config else False
+                pipeline_opts = PdfPipelineOptions(do_ocr=ocr_enabled, do_table_structure=True)
+                fmt_opts = {
+                    "input_format": InputFormat.PDF,
+                    "pipeline_options": pipeline_opts,
+                }
+                self._converter = DocumentConverter(format_options=fmt_opts)
+                logger.info(f"Docling siap (OCR={'ON' if ocr_enabled else 'OFF'}).")
+            except Exception:
+                # fallback: converter default bila konfigurasi pipeline gagal
+                logger.warning("Gagal set pipeline options Docling, pakai default.")
+                self._converter = DocumentConverter()
         return self._converter
 
     def parse(self, path: Path, *, filename: Optional[str] = None) -> Document:
+        ocr_on = bool(getattr(self.config, "enable_ocr", False)) if self.config else False
         try:
             converter = self._get_converter()
+            logger.info(f"Docling parsing {path.name} (OCR={'ON' if ocr_on else 'OFF'})...")
             result = converter.convert(str(path))
             dl_doc = result.document
+            logger.info(f"Docling selesai parse {path.name}.")
         except ParseError:
             raise
         except Exception as exc:
