@@ -136,20 +136,38 @@ class IndexPipeline:
 
     def _embed_and_store(self, chunks: list[Chunk], source: str,
                          progress: ProgressReporter) -> IndexResult:
-        """Embed batch chunk dan simpan ke vector store."""
+        """Embed batch chunk dan simpan ke vector store.
+
+        Pecah jadi SUB-BATCH agar tidak exceed limit vector DB (mis. ChromaDB
+        max 5461/upsert) atau limit batch embedding API. Ukuran sub-batch
+        default 500 (aman di bawah limit umum).
+        """
         result = IndexResult(source=source, total_chunks=len(chunks))
         if not chunks:
             return result
+        # ukuran sub-batch: ambil min(embedding batch_size, 500) utk safety.
+        # 500 aman di bawah limit ChromaDB (5461) & batch API umum.
+        sub_batch_size = min(getattr(self.config.embedding, "batch_size", 32) or 32, 500)
         try:
-            progress.stage(f"Embedding {len(chunks)} chunk...")
-            embeddings = self.embedder.embed_batch([c.text for c in chunks])
-            result.embedding_dim = self.embedder.dimension
+            total_indexed = 0
+            total = len(chunks)
+            result.embedding_dim = None
+            for start in range(0, total, sub_batch_size):
+                end = min(start + sub_batch_size, total)
+                batch = chunks[start:end]
+                progress.stage(f"Embedding {end}/{total} chunk...")
+                embeddings = self.embedder.embed_batch([c.text for c in batch])
+                if result.embedding_dim is None:
+                    result.embedding_dim = self.embedder.dimension
+                progress.stage(f"Storing {end}/{total} chunk to vector DB...")
+                indexed = self.store.upsert(batch, embeddings)
+                total_indexed += indexed
+                logger.debug(f"Sub-batch {start}-{end}: {indexed} chunk terstore.")
 
-            progress.stage("Storing to vector DB...")
-            indexed = self.store.upsert(chunks, embeddings)
-            result.indexed = indexed
-            logger.info(f"✓ {Path(source).name}: {indexed} chunk terindeks "
-                        f"(dim={result.embedding_dim}).")
+            result.indexed = total_indexed
+            logger.info(f"✓ {Path(source).name}: {total_indexed} chunk terindeks "
+                        f"(dim={result.embedding_dim}, {total} total, "
+                        f"sub-batch {sub_batch_size}).")
         except Exception as exc:
             result.error = f"{type(exc).__name__}: {exc}"
             logger.error(f"✗ Indexing gagal untuk {source}: {result.error}")

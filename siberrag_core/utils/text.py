@@ -10,8 +10,12 @@ import unicodedata
 _SENTENCE_BOUNDARY = re.compile(r"(?<=[.!?])\s+(?=[A-Z0-9\"'\(])")
 _WHITESPACE = re.compile(r"[ \t]+")
 _MULTI_NEWLINE = re.compile(r"\n{3,}")
-_PAGE_NUM = re.compile(r"\b(?:hal\.?\s*)?(?:page|halaman)?\s*\d+\s*(?:dari|of)\s*\d+\b",
-                       re.IGNORECASE)
+# Pola nomor halaman: HARUS ada prefix "page"/"halaman"/"hal." agar tidak
+# false-positive pada teks valid seperti "15 dari 15" atau "baris 1-15 dari 15".
+_PAGE_NUM = re.compile(
+    r"\b(?:halaman|hal\.?|page)\s+\d+\s*(?:dari|of)\s*\d+\b",
+    re.IGNORECASE,
+)
 _BROKEN_OCR = re.compile(r"[ \t][\uFFFD\u25A1\u2610]")  # replacement/empty box setelah spasi
 
 
