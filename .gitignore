@@ -82,9 +82,9 @@ out_*/
 demo_output/
 *.jsonl.bak
 
-# v2 - Vector database (ChromaDB) yang di-generate
-vectorstore/
-!siberrag_core/vectorstore/
+# v2 - Vector database (ChromaDB) yang di-generate (data runtime, BUKAN source code).
+# Hanya ignore folder data di ROOT project, JANGAN ignore package siberrag_core/vectorstore/
+/vectorstore/
 chroma*/
 *.sqlite3
 
