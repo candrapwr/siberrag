@@ -38,11 +38,16 @@ class PdfParser(BaseParser):
         total_pages = doc.page_count
         order = [0]
 
+        # progress reporter (bila ada, dari pipeline) untuk progress bar per halaman
+        progress = getattr(self, "_progress", None)
+
         # kumpulkan info font untuk threshold heading
         for page_index in range(total_pages):
             page = doc.load_page(page_index)
             page_no = page_index + 1
             self._process_page(page, page_no, root, order)
+            if progress is not None:
+                progress.update(page_no, total_pages, f"Parsing halaman {page_no}/{total_pages}")
 
         doc.close()
 

@@ -27,6 +27,7 @@ class BaseParser(ABC):
 
     def __init__(self, config: Optional[Any] = None) -> None:
         self.config = config
+        self._progress = None  # progress reporter (di-set oleh pipeline opsional)
 
     def supports(self, path: Path) -> bool:
         """True bila ekstensi file didukung parser ini."""
