@@ -33,8 +33,13 @@ class ChunkValidator:
             config.validation if isinstance(config, AppConfig) else (config or ValidationConfig())
         )
 
-    def validate_all(self, chunks: list[Chunk]) -> list[ChunkValidation]:
-        """Validasi seluruh chunk. Deteksi duplikat butuh konteks lintas-chunk."""
+    def validate_all(self, chunks: list[Chunk], progress=None) -> list[ChunkValidation]:
+        """Validasi seluruh chunk. Deteksi duplikat butuh konteks lintas-chunk.
+
+        Args:
+            chunks: daftar chunk yang divalidasi.
+            progress: optional ProgressReporter untuk progress bar per chunk.
+        """
         if not self.cfg.enabled:
             return [
                 ChunkValidation(chunk_id=c.id, quality_score=100) for c in chunks
@@ -43,8 +48,9 @@ class ChunkValidator:
         seen: set[str] = set()
         duplicates: set[str] = set()
         results: list[ChunkValidation] = []
+        total = len(chunks)
 
-        for chunk in chunks:
+        for i, chunk in enumerate(chunks, start=1):
             v = ChunkValidation(chunk_id=chunk.id, quality_score=100)
             check_token_bounds(chunk, v, self.cfg)
             check_no_truncated_sentence(chunk, v, self.cfg)
@@ -54,6 +60,8 @@ class ChunkValidator:
             # clamp skor
             v.quality_score = max(0, min(100, v.quality_score))
             results.append(v)
+            if progress is not None and i % 50 == 0:
+                progress.update(i, total, f"Validating {i}/{total} chunk")
 
         n_warn = sum(1 for r in results for _ in r.warnings)
         logger.debug(f"Validator: {len(results)} chunk divalidasi, {n_warn} warning.")

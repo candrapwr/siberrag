@@ -165,6 +165,7 @@ class Pipeline:
             # 3. Cleaning
             progress.stage("Cleaning...")
             document = self.cleaner.clean(document)
+            progress.stage(f"Cleaning... ({len(document.elements())} elemen dibersihkan)")
 
             # 4. Hierarchy
             progress.stage("Building hierarchy...")
@@ -173,6 +174,7 @@ class Pipeline:
             # 5. Semantic blocks
             progress.stage("Creating semantic blocks...")
             blocks = self.semantic.build(document)
+            progress.stage(f"Creating semantic blocks... ({len(blocks)} block)")
 
             # 6. Chunking
             progress.stage("Generating chunks...")
@@ -181,6 +183,7 @@ class Pipeline:
                 document_id=document.document_id,
                 filename=document.filename,
             )
+            progress.stage(f"Generating chunks... ({len(chunks)} chunk)")
 
             # 7. Metadata
             progress.stage("Building metadata...")
@@ -188,12 +191,12 @@ class Pipeline:
                 if document.root.children else ""
             chunks = self.metadata_builder.enrich(chunks, sample_text=sample)
 
-            # 8. Validation
+            # 8. Validation (dengan progress bar per chunk)
             progress.stage("Validating chunks...")
-            validations = self.validator.validate_all(chunks)
+            validations = self.validator.validate_all(chunks, progress=progress)
 
             # 9. Export
-            progress.stage("Exporting...")
+            progress.stage(f"Exporting... ({len(chunks)} chunk)")
             out_path = self._export(chunks, validations, output_dir,
                                     stem=path.stem, format=format)
 
