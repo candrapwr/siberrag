@@ -233,13 +233,24 @@ class Chunker:
             unit = units[i]
             unit_tokens = self.counter(unit.text)
 
-            # atomic & sangat besar (> target) -> chunk sendiri bila current cukup besar
-            if unit.atomic and unit_tokens > maximum:
-                if current:
-                    groups.append(current)
+            # atomic & besar: chunk sendiri (tidak digabung).
+            # - unit > maximum: WAJIB chunk sendiri (tidak bisa digabung)
+            # - unit >= minimum & atomic (tabel/list): chunk sendiri agar utuh,
+            #   karena menggabung tabel/list atomic menghasilkan chunk campur yang
+            #   buruk untuk retrieval (mis. 2 tabel CSV berbeda batch jadi 1 chunk)
+            if unit.atomic and (unit_tokens > maximum or unit_tokens >= minimum):
+                # bila current hanya berisi heading (konteks untuk unit ini),
+                # seret heading ke chunk unit agar tidak jadi chunk undersized.
+                if current and all(u.kind == "heading" for u in current):
+                    groups.append(current + [unit])
                     current = []
                     current_tokens = 0
-                groups.append([unit])
+                else:
+                    if current:
+                        groups.append(current)
+                        current = []
+                        current_tokens = 0
+                    groups.append([unit])
                 i += 1
                 continue
 

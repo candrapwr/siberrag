@@ -25,6 +25,7 @@ from siberrag_core.parsers.html_parser import HtmlParser
 from siberrag_core.parsers.markdown_parser import MarkdownParser
 from siberrag_core.parsers.pdf_parser import PdfParser
 from siberrag_core.parsers.txt_parser import TxtParser
+from siberrag_core.parsers.csv_parser import CsvParser
 from siberrag_core.parsers.xlsx_parser import XlsxParser
 from siberrag_core.utils.logging import logger
 
@@ -34,6 +35,8 @@ _NATIVE_BY_EXT: dict[str, type[BaseParser]] = {
     "docx": DocxParser,
     "xlsx": XlsxParser,
     "xlsm": XlsxParser,
+    "csv": CsvParser,
+    "tsv": CsvParser,
     "html": HtmlParser,
     "htm": HtmlParser,
     "md": MarkdownParser,

@@ -3,9 +3,10 @@
 Endpoints:
 - GET  /api/health         -> status server
 - GET  /api/stats          -> statistik vector DB
-- POST /api/index          -> index dokumen/path
-- POST /api/query          -> tanya jawab RAG
-- GET  /                   -> Web UI (Gradio, bila terpasang)
+- POST /api/index          -> upload & index dokumen (multipart file)
+- POST /api/retrieve       -> cari chunk relevan (chunk mentah, tanpa LLM)
+- POST /api/query          -> tanya jawab RAG (retrieve + LLM generation)
+- GET  /                   -> info + link docs
 
 Konfigurasi dibaca dari config/config.yaml (atau env SIBERRAG_CONFIG).
 IndexPipeline & QueryPipeline di-cache (singleton) agar model embedding tidak
@@ -15,6 +16,7 @@ di-load ulang setiap request.
 from __future__ import annotations
 
 import os
+import tempfile
 from pathlib import Path
 from typing import Optional
 
@@ -22,11 +24,12 @@ from typing import Optional
 from siberrag_core.utils.env import load_env
 load_env()
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from siberrag_core.config import load_config
+from siberrag_core.parsers.registry import is_supported
 
 # config path bisa di-override via env (dipakai command `serve`)
 _config_path = os.environ.get("SIBERRAG_CONFIG", "").strip()
@@ -71,17 +74,12 @@ def get_query_pipeline():
 # ============================================================
 
 
-class IndexRequest(BaseModel):
-    path: str
-    collection: Optional[str] = None
-    min_quality: int = 0
-
-
 class IndexResponse(BaseModel):
     total_indexed: int
     sources_succeeded: int
     sources_failed: int
     errors: list[str] = []
+    filename: str = ""
 
 
 class QueryRequest(BaseModel):
@@ -89,7 +87,6 @@ class QueryRequest(BaseModel):
     top_k: Optional[int] = None
     score_threshold: Optional[float] = None
     document_id: Optional[str] = None
-    retrieve_only: bool = False
 
 
 class SourceHit(BaseModel):
@@ -108,6 +105,46 @@ class QueryResponse(BaseModel):
     sources: list[SourceHit] = []
     model: str = ""
     error: Optional[str] = None
+
+
+# --- Retrieve (chunk mentah) ---
+
+class RetrieveRequest(BaseModel):
+    question: str
+    top_k: Optional[int] = None
+    score_threshold: Optional[float] = None
+    document_id: Optional[str] = None
+
+
+class ChunkMetadataOut(BaseModel):
+    """Metadata chunk lengkap (sesuai ChunkMetadata v1)."""
+    id: str = ""
+    document_id: str = ""
+    filename: str = ""
+    page_start: int = 1
+    page_end: int = 1
+    chapter: str = ""
+    section: str = ""
+    chunk_index: int = 0
+    total_chunk: int = 0
+    token_count: int = 0
+    word_count: int = 0
+    language: str = ""
+    block_type: str = "paragraph"
+
+
+class ChunkOut(BaseModel):
+    """Satu chunk mentah hasil retrieval."""
+    id: str
+    text: str
+    score: float
+    metadata: ChunkMetadataOut
+
+
+class RetrieveResponse(BaseModel):
+    question: str
+    total: int
+    chunks: list[ChunkOut] = []
 
 
 # ============================================================
@@ -137,44 +174,82 @@ async def stats():
 
 
 @app.post("/api/index", response_model=IndexResponse)
-async def index_endpoint(req: IndexRequest):
+async def index_endpoint(
+    file: UploadFile = File(..., description="File dokumen yang akan di-index"),
+    collection: Optional[str] = None,
+    min_quality: int = 0,
+):
+    """Upload & index dokumen. Menerima PDF/DOCX/XLSX/HTML/MD/TXT."""
+    # validasi ekstensi
+    filename = file.filename or "upload.bin"
+    file_path_obj = Path(filename)
+    if not is_supported(file_path_obj):
+        raise HTTPException(
+            status_code=415,
+            detail=f"Format tidak didukung: {file_path_obj.suffix}. "
+                   f"Didukung: PDF, DOCX, XLSX, HTML, MD, TXT.",
+        )
     try:
         pipeline = get_index_pipeline()
-        if req.collection:
-            CONFIG.vector_db.collection = req.collection
-        result = pipeline.index(req.path, min_quality_score=req.min_quality)
+        if collection:
+            CONFIG.vector_db.collection = collection
+        # simpan file upload ke temp file, lalu index
+        suffix = file_path_obj.suffix
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix,
+                                         prefix="siberrag_upload_") as tmp:
+            content = await file.read()
+            tmp.write(content)
+            tmp_path = tmp.name
+        try:
+            result = pipeline.index(tmp_path, min_quality_score=min_quality)
+        finally:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
         errors = [f"{r.source}: {r.error}" for r in result.failed]
         return IndexResponse(
             total_indexed=result.total_indexed,
             sources_succeeded=len(result.succeeded),
             sources_failed=len(result.failed),
             errors=errors,
+            filename=filename,
         )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/api/retrieve", response_model=RetrieveResponse)
+async def retrieve_endpoint(req: RetrieveRequest):
+    """Cari chunk relevan. Return CHUNK MENTAH (id, text, metadata lengkap, skor)
+    tanpa LLM generation. Berguna untuk integrasi sistem lain yang punya LLM sendiri."""
+    try:
+        pipeline = get_query_pipeline()
+        results = pipeline.retrieve_only(
+            req.question, top_k=req.top_k,
+            score_threshold=req.score_threshold, document_id=req.document_id,
+        )
+        chunks = [
+            ChunkOut(
+                id=h.chunk.id,
+                text=h.chunk.text,
+                score=round(h.score, 4),
+                metadata=ChunkMetadataOut(**h.chunk.metadata.model_dump()),
+            )
+            for h in results.hits
+        ]
+        return RetrieveResponse(question=req.question, total=len(chunks), chunks=chunks)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
 
 @app.post("/api/query", response_model=QueryResponse)
 async def query_endpoint(req: QueryRequest):
+    """Tanya jawab RAG penuh: retrieve chunk + generate jawaban via LLM."""
     try:
         pipeline = get_query_pipeline()
-        if req.retrieve_only:
-            results = pipeline.retrieve_only(
-                req.question, top_k=req.top_k,
-                score_threshold=req.score_threshold, document_id=req.document_id,
-            )
-            return QueryResponse(
-                question=req.question,
-                answer="(retrieve-only mode)",
-                sources=[
-                    SourceHit(
-                        chunk_id=h.chunk.id, score=round(h.score, 4),
-                        text=h.chunk.text, filename=h.chunk.metadata.filename,
-                        chapter=h.chunk.metadata.chapter, section=h.chunk.metadata.section,
-                        page_start=h.chunk.metadata.page_start,
-                    ) for h in results.hits
-                ],
-            )
         answer = pipeline.query(
             req.question, top_k=req.top_k,
             score_threshold=req.score_threshold, document_id=req.document_id,
@@ -201,6 +276,6 @@ async def root():
     return {
         "service": "SiberRAG API v2",
         "docs": "/docs",
-        "endpoints": ["/api/health", "/api/stats", "/api/index", "/api/query"],
+        "endpoints": ["/api/health", "/api/stats", "/api/index", "/api/retrieve", "/api/query"],
         "ui": "Untuk Web UI chat, jalankan: python -m siberrag_ui.app",
     }

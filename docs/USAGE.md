@@ -162,7 +162,14 @@ siberrag index regulasi.pdf
 siberrag index ./dokumen
 ```
 
-Mendukung: PDF, DOCX, XLSX, HTML, Markdown, TXT.
+Mendukung: PDF, DOCX, XLSX/XLSM, CSV/TSV, HTML, Markdown, TXT.
+
+Jika extra `docling` dipasang, mode parser `auto` juga bisa menangani format
+Docling-only seperti PPTX dan gambar (`PNG/JPG/JPEG`). Untuk format tersebut,
+pakai:
+```bash
+pip install -e ".[docling]"
+```
 
 ### Pakai collection berbeda (pisah per topik/proyek)
 
@@ -288,8 +295,13 @@ curl http://localhost:8000/api/stats
 #### Index dokumen
 ```bash
 curl -X POST http://localhost:8000/api/index \
-  -H "Content-Type: application/json" \
-  -d '{"path":"dokumen.pdf"}'
+  -F "file=@dokumen.pdf"
+```
+
+Dengan collection berbeda:
+```bash
+curl -X POST "http://localhost:8000/api/index?collection=peraturan-negara" \
+  -F "file=@dokumen.pdf"
 ```
 
 #### Tanya jawab
@@ -313,9 +325,9 @@ Response:
 
 #### Retrieve-only (tanpa LLM)
 ```bash
-curl -X POST http://localhost:8000/api/query \
+curl -X POST http://localhost:8000/api/retrieve \
   -H "Content-Type: application/json" \
-  -d '{"question":"...","retrieve_only":true}'
+  -d '{"question":"...","top_k":5}'
 ```
 
 ---
@@ -327,7 +339,7 @@ Chat interface berbasis Gradio untuk tanya-jawab interaktif.
 ### Install & jalankan
 
 ```bash
-pip install -e ".[ui]"
+pip install -e ".[rag,rag-openai,ui]"
 # reinstall agar siberrag_ui terdeteksi (bila baru install ulang)
 pip install -e . --no-deps
 python -m siberrag_ui.app
@@ -436,6 +448,29 @@ ModuleNotFoundError: No module named 'siberrag_api'
 pip install -e ".[rag,rag-openai,api]" --no-deps
 # atau minimal:
 pip install -e . --no-deps
+```
+
+### "No module named 'siberrag_core.vectorstore'" saat `siberrag index`
+
+```
+ModuleNotFoundError: No module named 'siberrag_core.vectorstore'
+```
+
+**Penyebab**: Editable install/venv masih mengarah ke versi lama yang belum
+mendaftarkan package `siberrag_core.vectorstore`, atau package baru dibuat
+setelah `pip install -e .` terakhir.
+
+**Solusi**: Aktifkan venv yang benar lalu reinstall package:
+```bash
+source .venv/bin/activate
+pip install -e ".[rag,rag-openai,api]" --no-deps
+# bila dependency RAG belum pernah dipasang:
+pip install -e ".[rag,rag-openai,api]"
+```
+
+Cek import setelah reinstall:
+```bash
+python -c "import siberrag_core.vectorstore; print('ok')"
 ```
 
 ### Model local lambat saat startup
