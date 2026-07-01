@@ -152,17 +152,17 @@ class IndexPipeline:
             total_indexed = 0
             total = len(chunks)
             result.embedding_dim = None
+            progress.stage("Embedding & storing to vector DB...")
             for start in range(0, total, sub_batch_size):
                 end = min(start + sub_batch_size, total)
                 batch = chunks[start:end]
-                progress.stage(f"Embedding {end}/{total} chunk...")
                 embeddings = self.embedder.embed_batch([c.text for c in batch])
                 if result.embedding_dim is None:
                     result.embedding_dim = self.embedder.dimension
-                progress.stage(f"Storing {end}/{total} chunk to vector DB...")
                 indexed = self.store.upsert(batch, embeddings)
                 total_indexed += indexed
-                logger.debug(f"Sub-batch {start}-{end}: {indexed} chunk terstore.")
+                # update progress bar: done/total
+                progress.update(end, total, f"Indexing chunk {end}/{total}")
 
             result.indexed = total_indexed
             logger.info(f"✓ {Path(source).name}: {total_indexed} chunk terindeks "
