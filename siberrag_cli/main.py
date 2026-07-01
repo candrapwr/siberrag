@@ -36,16 +36,42 @@ app = typer.Typer(
 
 
 class RichProgressReporter(ProgressReporter):
-    """Adapter ProgressReporter -> Rich progress bar (mode simple per-stage)."""
+    """Adapter ProgressReporter -> Rich console + progress bar.
+
+    - stage(name): cetak nama tahap
+    - update(done, total, desc): tampilkan/update progress bar real-time
+    """
 
     def __init__(self) -> None:
-        self._stage_index = 0
+        self._progress = None  # Rich Progress (dibuat saat update() pertama)
+        self._task = None
 
     def stage(self, name: str) -> None:
+        # bila ada progress bar aktif, tutup dulu
+        self._stop_progress()
         console.print(f"[cyan]▶[/cyan] {name}")
 
     def advance(self, n: int = 1) -> None:
-        pass  # per-file advance tidak ditampilkan detail (lihat loop di command)
+        pass
+
+    def update(self, done: int, total: int, desc: str = "") -> None:
+        """Update progress bar. Buat progress baru bila belum ada."""
+        from siberrag_cli.display import make_progress
+        if self._progress is None:
+            self._progress = make_progress()
+            self._progress.start()
+            self._task = self._progress.add_task(desc or "Processing...", total=total)
+        self._progress.update(self._task, completed=done, description=desc)
+
+    def _stop_progress(self) -> None:
+        if self._progress is not None:
+            self._progress.stop()
+            self._progress = None
+            self._task = None
+
+    def finish(self) -> None:
+        """Tutup progress bar (dipanggil di akhir command)."""
+        self._stop_progress()
 
 
 @app.command()
@@ -86,6 +112,7 @@ def process(
         format=format,
         progress=reporter,
     )
+    reporter.finish()
 
     print_summary(result)
 
@@ -139,7 +166,9 @@ def index(
     console.print()
 
     pipeline = IndexPipeline(cfg)
-    result = pipeline.index(path, min_quality_score=min_quality)
+    reporter = RichProgressReporter()
+    result = pipeline.index(path, min_quality_score=min_quality, progress=reporter)
+    reporter.finish()
 
     # ringkasan
     succeeded = result.succeeded

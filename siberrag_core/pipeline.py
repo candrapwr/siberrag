@@ -30,11 +30,19 @@ from siberrag_core.validator.validator import ChunkValidator
 
 
 class ProgressReporter(Protocol):
-    """Protokol callback progres (dipanggil pipeline setiap tahap/dokumen)."""
+    """Protokol callback progres (dipanggil pipeline setiap tahap/dokumen).
+
+    Method:
+    - stage(name): tandai awal tahap baru (mis. "Embedding...")
+    - advance(n):  tandai n item selesai diproses
+    - update(done, total, desc): update progres detail (done/total) untuk progress bar
+    """
 
     def stage(self, name: str) -> None: ...
 
     def advance(self, n: int = 1) -> None: ...
+
+    def update(self, done: int, total: int, desc: str = "") -> None: ...
 
 
 class NullProgress:
@@ -44,6 +52,9 @@ class NullProgress:
         pass
 
     def advance(self, n: int = 1) -> None:
+        pass
+
+    def update(self, done: int, total: int, desc: str = "") -> None:
         pass
 
 
