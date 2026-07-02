@@ -6,10 +6,13 @@ from typing import Optional
 
 from siberrag_core.config import AppConfig, LLMConfig
 from siberrag_core.generation.base import BaseLLM
+from siberrag_core.generation.local_llm import LocalTransformersLLM
 from siberrag_core.generation.openai_llm import OpenAILLM
 
 _PROVIDERS: dict[str, type[BaseLLM]] = {
+    "local": LocalTransformersLLM,
     "openai": OpenAILLM,
+    "custom": OpenAILLM,
 }
 
 

@@ -82,31 +82,36 @@ cp .env.example .env
 
 ### 2.2 Provider Embedding & LLM
 
-Atur di `config/config.yaml`. Ada 3 mode:
+Atur di `config/config.yaml`. Default-nya local. Untuk provider `custom`, `api_base` wajib diisi dengan endpoint OpenAI-compatible.
 
-#### Mode A: Custom API (DeepInfra) — default, cepat
-```yaml
-embedding:
-  provider: "custom"
-  model: "BAAI/bge-m3"
-  dim: 1024
-  api_base: "https://api.deepinfra.com/v1"
-
-llm:
-  provider: "openai"
-  model: "meta-llama/Meta-Llama-3-8B-Instruct"
-  api_base: "https://api.deepinfra.com/v1"
-```
-
-#### Mode B: Local (offline, gratis, privasi penuh)
+#### Mode A: Local (default, tanpa API server)
 ```yaml
 embedding:
   provider: "local"
   model: "BAAI/bge-m3"
   dim: 1024
   # tidak perlu api_base/api_key
+
+llm:
+  provider: "local"
+  model: "Qwen/Qwen2.5-0.5B-Instruct"
+  # tidak perlu api_base/api_key
 ```
-> Catatan: mode local butuh download model (~2GB) sekali saja, lalu berjalan offline.
+> Catatan: embedding local memakai sentence-transformers. LLM local memuat model Hugging Face langsung via Transformers, jadi pertama kali akan download model.
+
+#### Mode B: Custom API (DeepInfra/Together/dll)
+```yaml
+embedding:
+  provider: "custom"
+  model: "BAAI/bge-m3"
+  dim: 1024
+  api_base: "https://api.deepinfra.com/v1"  # wajib OpenAI-compatible
+
+llm:
+  provider: "custom"
+  model: "meta-llama/Meta-Llama-3-8B-Instruct"
+  api_base: "https://api.deepinfra.com/v1"  # wajib OpenAI-compatible
+```
 
 #### Mode C: OpenAI resmi
 ```yaml

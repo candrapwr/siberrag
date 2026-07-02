@@ -59,15 +59,14 @@ export:
 # ---- Embedding (hybrid: local default, bisa switch ke API) ----
 # Provider:
 #   local  -> sentence-transformers (BGE-m3), gratis & offline
-#   openai -> OpenAI resmi (text-embedding-3-small/large)
-#   custom -> endpoint OpenAI-compatible APA SAJA (Jina/Cohere/Together/Ollama/LM Studio/dll)
+#   custom -> endpoint OpenAI-compatible APA SAJA; api_base WAJIB diisi
 embedding:
-  provider: "custom"           # "local" | "openai" | "custom"
-  model: "BAAI/bge-m3"        # model embedding DeepInfra
+  provider: "local"           # "local" | "custom"
+  model: "BAAI/bge-m3"        # model embedding lokal
   dim: 1024                   # BGE-m3=1024
   batch_size: 32
-  api_key: ""                 # ambil dari env OPENAI_API_KEY (JANGAN taruh key di sini)
-  api_base: "https://api.deepinfra.com/v1"  # endpoint DeepInfra
+  api_key: ""                 # untuk custom: ambil dari env OPENAI_API_KEY (JANGAN taruh key di sini)
+  api_base: ""                # untuk custom WAJIB: endpoint OpenAI-compatible, mis. https://api.deepinfra.com/v1
 
 # ---- Vector Database ----
 vector_db:
@@ -76,12 +75,15 @@ vector_db:
   path: "./vectorstore"       # direktori persisten ChromaDB
   distance: "cosine"
 
-# ---- LLM (OpenAI-compatible API) ----
+# ---- LLM (local default via Hugging Face Transformers, bisa switch ke custom API) ----
+# Provider:
+#   local  -> Hugging Face Transformers langsung, tanpa API server
+#   custom -> endpoint OpenAI-compatible APA SAJA; api_base WAJIB diisi
 llm:
-  provider: "openai"          # "openai" (pakai OpenAI-compatible endpoint apa saja)
-  model: "meta-llama/Meta-Llama-3-8B-Instruct"   # sesuaikan dgn model di provider DeepInfra
-  api_key: ""                 # ambil dari env OPENAI_API_KEY (JANGAN taruh key di sini)
-  api_base: "https://api.deepinfra.com/v1"       # endpoint DeepInfra
+  provider: "local"           # "local" | "custom"
+  model: "Qwen/Qwen2.5-0.5B-Instruct"  # model Hugging Face untuk local
+  api_key: ""                 # untuk custom: ambil dari env OPENAI_API_KEY (JANGAN taruh key di sini)
+  api_base: ""                # untuk custom WAJIB: endpoint OpenAI-compatible
   temperature: 0.3
   max_tokens: 1024
 
@@ -90,4 +92,3 @@ retrieval:
   top_k: 5                    # jumlah chunk relevan yang di-retrieve
   score_threshold: 0.3        # filter chunk dengan relevansi < threshold
   filter_by_document: false   # scope query ke document_id tertentu
-
