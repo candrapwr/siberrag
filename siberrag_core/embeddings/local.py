@@ -40,9 +40,9 @@ class LocalEmbedder(BaseEmbedder):
 
     def _get_model(self) -> "SentenceTransformer":
         if self._model is None:
-            logger.info(f"Memuat model embedding lokal: {self.config.model}...")
+            logger.info(f"⏳ Memuat model embedding lokal: {self.config.model} (sekali saja, mungkin butuh beberapa detik)...")
             self._model = SentenceTransformer(self.config.model)
-            logger.info(f"Model {self.config.model} siap (dim={self._get_dim()}).")
+            logger.info(f"✅ Model {self.config.model} siap (dim={self._get_dim()}).")
         return self._model
 
     def _get_dim(self) -> int:

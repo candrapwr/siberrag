@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Literal, Optional
 
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 # path default relatif terhadap root proyek
 _DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "config.yaml"
@@ -95,6 +95,15 @@ class EmbeddingConfig(BaseModel):
     api_key: str = ""  # bila kosong, ambil dari env OPENAI_API_KEY (boleh kosong utk lokal)
     api_base: str = ""  # mis. https://api.openai.com/v1 atau http://localhost:11434/v1
 
+    @model_validator(mode="after")
+    def validate_custom_api_base(self) -> "EmbeddingConfig":
+        if self.provider == "custom" and not self.api_base.strip():
+            raise ValueError(
+                "embedding.api_base wajib diisi saat embedding.provider='custom' "
+                "(endpoint harus OpenAI-compatible, mis. https://api.deepinfra.com/v1)."
+            )
+        return self
+
 
 class VectorDBConfig(BaseModel):
     """Konfigurasi vector database (ChromaDB embedded)."""
@@ -106,14 +115,29 @@ class VectorDBConfig(BaseModel):
 
 
 class LLMConfig(BaseModel):
-    """Konfigurasi LLM untuk generation (OpenAI-compatible API)."""
+    """Konfigurasi LLM untuk generation.
 
-    provider: Literal["openai"] = "openai"
-    model: str = "gpt-4o-mini"
-    api_key: str = ""  # bila kosong, ambil dari env OPENAI_API_KEY
-    api_base: str = ""  # mis. https://api.openai.com/v1
+    Provider yang didukung:
+    - ``local``: Hugging Face Transformers langsung, tanpa API server
+    - ``openai``: OpenAI resmi
+    - ``custom``: endpoint OpenAI-compatible lain (DeepInfra/Together/dll)
+    """
+
+    provider: Literal["local", "openai", "custom"] = "local"
+    model: str = "Qwen/Qwen2.5-0.5B-Instruct"
+    api_key: str = ""  # untuk openai/custom: bila kosong, ambil dari env OPENAI_API_KEY
+    api_base: str = ""  # untuk custom: endpoint OpenAI-compatible wajib diisi
     temperature: float = 0.3
     max_tokens: int = 1024
+
+    @model_validator(mode="after")
+    def validate_custom_api_base(self) -> "LLMConfig":
+        if self.provider == "custom" and not self.api_base.strip():
+            raise ValueError(
+                "llm.api_base wajib diisi saat llm.provider='custom' "
+                "(endpoint harus OpenAI-compatible, mis. https://api.deepinfra.com/v1)."
+            )
+        return self
 
 
 class RetrievalConfig(BaseModel):

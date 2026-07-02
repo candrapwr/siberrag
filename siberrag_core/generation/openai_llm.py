@@ -37,10 +37,19 @@ class OpenAILLM(BaseLLM):
             )
         api_key = self.config.api_key or os.getenv("OPENAI_API_KEY", "")
         if not api_key:
-            raise RuntimeError(
-                "OPENAI_API_KEY tidak ditemukan. Set env var atau isi config.llm.api_key."
-            )
+            if self._is_local_endpoint():
+                logger.info("Endpoint LLM lokal terdeteksi (tanpa API key) - menggunakan dummy key.")
+                api_key = "local"
+            else:
+                raise RuntimeError(
+                    "OPENAI_API_KEY tidak ditemukan. Set env var atau isi config.llm.api_key."
+                )
         self._client = OpenAI(api_key=api_key, base_url=self.config.api_base or None)
+
+    def _is_local_endpoint(self) -> bool:
+        """True bila api_base menunjuk ke endpoint lokal yang umumnya tanpa auth."""
+        base = (self.config.api_base or "").lower()
+        return any(host in base for host in ("localhost", "127.0.0.1", "0.0.0.0", "::1"))
 
     def generate(self, messages: list[dict[str, str]]) -> str:
         logger.debug(f"LLM generate: model={self.config.model}, messages={len(messages)}")

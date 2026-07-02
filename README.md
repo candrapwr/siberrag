@@ -50,7 +50,7 @@ Diuji pada berbagai jenis dokumen Indonesia:
 - **Embedding hybrid**: local BGE-m3 (gratis/offline) atau API custom (DeepInfra/OpenAI/Jina/Ollama)
 - **Vector DB**: ChromaDB (embedded, simpan ke disk)
 - **Retrieval semantik**: memahami Bahasa Indonesia natural, bukan keyword match
-- **LLM generation**: OpenAI-compatible (GPT-4o, Llama 3, Qwen via DeepInfra/Ollama)
+- **LLM generation**: local Hugging Face Transformers atau API custom OpenAI-compatible
 - **REST API**: FastAPI (index/query/stats)
 - **Web UI**: Gradio chat dengan source citations
 - **Auto-load `.env`**: API key aman
@@ -78,15 +78,13 @@ cp .env.example .env
 
 ```yaml
 embedding:
-  provider: "custom"
+  provider: "local"
   model: "BAAI/bge-m3"
   dim: 1024
-  api_base: "https://api.deepinfra.com/v1"
 
 llm:
-  provider: "openai"
-  model: "meta-llama/Meta-Llama-3-8B-Instruct"
-  api_base: "https://api.deepinfra.com/v1"
+  provider: "local"
+  model: "Qwen/Qwen2.5-0.5B-Instruct"
 ```
 
 ### 4. Index & tanya jawab
