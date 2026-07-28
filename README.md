@@ -217,3 +217,5 @@ Python 3.11+
 **SiberRAG** — RAG yang mengerti Bahasa Indonesia & struktur dokumen. Dibangun dari pengalaman nyata, bukan teori.
 
 SiberRAG membantu? ⭐ Star repo-nya dan bagikan ke sesama builder!
+
+<!-- repo: siberrag · dataSiberLab · 2026 -->
