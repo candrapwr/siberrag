@@ -1,4 +1,22 @@
+<div align="center">
+
 # 🇮🇩 SiberRAG
+
+**RAG Engine yang dirancang khusus untuk dokumen & Bahasa Indonesia.**
+
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+[![Python](https://img.shields.io/badge/python-3.11+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Tests](https://img.shields.io/badge/tests-103_passing-success.svg)](#-kualitas--testing)
+[![FastAPI](https://img.shields.io/badge/FastAPI-REST-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![ChromaDB](https://img.shields.io/badge/ChromaDB-vector_store-FF6F00?logo=chroma&logoColor=white)](https://www.trychroma.com/)
+[![BGE-m3](https://img.shields.io/badge/embedding-BGE--m3_multilingual-9F7AEA.svg)](#-rag-penuh-v2)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#)
+[![Status](https://img.shields.io/badge/status-aktif_maintained-success.svg)](#)
+[![Stars](https://img.shields.io/github/stars/candrapwr/siberrag?style=social&label=Star)](https://github.com/candrapwr/siberrag/stargazers)
+
+</div>
+
+> 🌐 Bagian dari **Ekosistem Siber** — dibangun & dirawat oleh **dataSiberLab**.
 
 > **RAG Engine yang dirancang khusus untuk dokumen & Bahasa Indonesia.**
 
@@ -183,16 +201,19 @@ Python 3.11+
 
 ## 📄 Lisensi
 
-MIT
+**MIT License.** Lihat [LICENSE](./LICENSE). Bebas dipakai, dimodifikasi, dan didistribusikan — termasuk komersial.
 
 ---
 
 ## 👨‍💻 Developer
 
-**DataSiberLab**
+**dataSiberLab**
 
 - 📧 Email: [candrapwr@datasiber.com](mailto:candrapwr@datasiber.com)
+- 🌐 Website: [datasiber.com](https://datasiber.com)
 
 ---
 
 **SiberRAG** — RAG yang mengerti Bahasa Indonesia & struktur dokumen. Dibangun dari pengalaman nyata, bukan teori.
+
+SiberRAG membantu? ⭐ Star repo-nya dan bagikan ke sesama builder!
